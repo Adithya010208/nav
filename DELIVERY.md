@@ -106,3 +106,8 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - The previously authorized phone is currently disconnected. Installation, real notification permission/display/sound, closed-app delivery, disable and reboot acceptance checks remain pending. Full product remains incomplete.
 
 - Final preview 0.3 rebuild, test-APK build, lint and APK signature verification passed. Exported task artifact nav-android-preview.apk SHA-256: 84066d6c95af7368f863f8efa069f540f0c27f493b7ba602835f139b0a3716ac. Device checks remain pending; the phone is disconnected.
+
+## Device acceptance runner follow-up
+- Added a repeatable Android runner that refuses absent/unauthorized or ambiguous devices, optionally upgrades with data-preserving install -r, checks the expected 18-fixture result, and removes only its test APK in finally. No OS permission grants or real inbox changes are performed.
+- PowerShell syntax validation passed. The absent-device preflight correctly refused to run. The phone remains disconnected; the existing reconnect request is pending and is not repeated. Device delivery remains unverified.
+- Previous private source publication succeeded: appgdep_6ad64708cde08191a17df54a81a6fb54, source 0577265a6321405ac36d45dcd441e99a6ff5cff4, environment revision 1.
