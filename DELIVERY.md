@@ -46,7 +46,7 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - TypeScript checks, production builds, core planner/calendar/schema tests, and two-user data-isolation tests pass.
 - Local API tests verified sign-in, persistence, revision conflicts and private file access.
 - Desktop and phone layouts were visually checked.
-- PDF.js extracted all eight pages of the supplied roadmap. Browser PDF controls still require final interaction testing.
+- PDF.js extracted all eight pages of the supplied roadmap; the browser Read text flow also extracted all eight pages in local verification.
 - Live AI, automatic WhatsApp ingestion, closed-app push reminders, and native companions remain incomplete or unverified.
 - Hosted sign-in encountered an OpenAI authentication-page error; signed-in production flow requires rechecking.
 
@@ -58,3 +58,10 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Tray menu includes open/mini window, background reminders, optional Windows startup, test notification, sign out and quit.
 - Still unverified: hosted sign-in from the desktop app, actual toast/sound delivery and reminders during a real signed-in background session. Native API support alone does not prove delivery.
 - Android companion and actual device testing remain outstanding. The Android SDK is not present on this machine; Java 26 is installed.
+
+## Android companion source evidence (19 October, follow-up)
+- Added an Android source preview under `companions/android`: system-browser NAV launch, explicit exact-group selection, notification-access settings, local notice review, and disconnect/delete controls.
+- Capture defaults off. The listener accepts only `com.whatsapp` group MessagingStyle notifications from the exact approved title. It cannot reply, dismiss notices, modify WhatsApp or send network requests.
+- Notice retention is bounded to 100 messages / 100,000 characters; expired notices are pruned on receipt or opening the inbox. Group changes and disconnect delete local notices. Android backups are disabled.
+- Pure Java checks passed for 11 permitted/denied cases: package, group/direct conversation, exact title, opt-in, empty/oversized body and stale/future timestamps. Existing web core and two-user isolation checks also passed.
+- This is source, not a verified Android app release: no SDK/APK build, device delivery, automatic cloud ingestion, native reminders or signed installation has been verified. Duplicate group titles cannot establish unique group identity and require a uniquely named selected group before device acceptance.
