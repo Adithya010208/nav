@@ -2,6 +2,7 @@ package app.nav.companion;
 
 import android.app.Notification;
 import android.content.SharedPreferences;
+import android.content.Context;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import org.json.JSONArray;
@@ -10,11 +11,13 @@ import org.json.JSONObject;
 /** Deliberately never invokes actions, reply intents, cancellation, or WhatsApp APIs. */
 public final class CollegeNotificationListener extends NotificationListenerService {
     @Override public void onNotificationPosted(StatusBarNotification posted) {
+        capture(this, getSharedPreferences("college", MODE_PRIVATE), posted);
+    }
+    static void capture(Context context, SharedPreferences prefs, StatusBarNotification posted) {
         if (!"com.whatsapp".equals(posted.getPackageName())) return;
-        SharedPreferences prefs = getSharedPreferences("college", MODE_PRIVATE);
         if (!prefs.getBoolean("enabled", false)) return;
         Notification.Style recovered;
-        try { recovered = Notification.Builder.recoverBuilder(this, posted.getNotification()).getStyle(); }
+        try { recovered = Notification.Builder.recoverBuilder(context, posted.getNotification()).getStyle(); }
         catch (RuntimeException invalidNotification) { return; }
         if (!(recovered instanceof Notification.MessagingStyle)) return;
         Notification.MessagingStyle style = (Notification.MessagingStyle) recovered;
@@ -44,9 +47,12 @@ public final class CollegeNotificationListener extends NotificationListenerServi
                     if (!duplicate) retained.put(new JSONObject().put("group", title).put("text", text).put("receivedAt", message.getTimestamp()));
                 }
                 JSONArray bounded = new JSONArray();
+                java.util.ArrayList<JSONObject> ordered = new java.util.ArrayList<>();
+                for (int i = 0; i < retained.length(); i++) ordered.add(retained.getJSONObject(i));
+                ordered.sort((a,b) -> Long.compare(b.optLong("receivedAt"), a.optLong("receivedAt")));
                 int bytes = 0;
-                for (int i = retained.length() - 1; i >= 0 && bounded.length() < 100; i--) {
-                    JSONObject entry = retained.getJSONObject(i);
+                for (JSONObject entry : ordered) {
+                    if (bounded.length() >= 100) break;
                     bytes += entry.toString().length();
                     if (bytes > 100000) break;
                     bounded.put(entry);
