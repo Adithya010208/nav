@@ -68,10 +68,39 @@ public final class MainActivity extends Activity {
             group.setText(""); refresh();
         });
         button("Refresh local notices", this::refresh);
+        button("Export captured notices", () -> {
+            refresh();
+            try {
+                JSONArray entries=new JSONArray(prefs.getString("inbox","[]"));
+                if(!prefs.getBoolean("enabled",false)||entries.length()==0){Toast.makeText(this,"No captured notices to export.",Toast.LENGTH_LONG).show();return;}
+                new android.app.AlertDialog.Builder(this).setTitle("Export college notices?").setMessage("This saves the captured notice text and group name to a file you choose. Import it in NAV’s College inbox, then delete the file when you no longer need it. It may be saved in a cloud folder if you choose one.").setNegativeButton("Cancel",null).setPositiveButton("Choose file",(dialog,which)->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"nav-college-notices.json"),7313)).show();
+            }catch(Exception invalid){Toast.makeText(this,"Could not read local notices.",Toast.LENGTH_LONG).show();}
+        });
         inbox = text("", 16); inbox.setTextIsSelectable(true);
         refresh();
     }
     @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.schedule(this);refreshReminder();} }
+    @Override public void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request!=7313||result!=RESULT_OK||data==null||data.getData()==null)return;
+        try {
+            JSONObject bundle;
+            synchronized(CollegeNotificationListener.class){
+                if(!prefs.getBoolean("enabled",false))throw new IllegalStateException();
+                String group=prefs.getString("group","");
+                JSONArray all=new JSONArray(prefs.getString("inbox","[]")),kept=new JSONArray();
+                long cutoff=System.currentTimeMillis()-7L*86400000;
+                for(int i=0;i<all.length();i++){JSONObject notice=all.getJSONObject(i);if(group.equals(notice.optString("group"))&&notice.optLong("receivedAt")>=cutoff)kept.put(notice);}
+                if(kept.length()==0)throw new IllegalStateException();
+                bundle=new JSONObject().put("format","nav-college-notices").put("version",1).put("group",group).put("notices",kept);
+            }
+            try(java.io.OutputStream output=getContentResolver().openOutputStream(data.getData(),"wt")){
+                if(output==null)throw new java.io.IOException();
+                output.write(bundle.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            Toast.makeText(this,"Export saved. Open NAV → College inbox to review and import the file.",Toast.LENGTH_LONG).show();
+        }catch(Exception unavailable){Toast.makeText(this,"Export failed. Check your selected folder and try again.",Toast.LENGTH_LONG).show();}
+    }
     @Override public void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);state.putString("pendingReminderAction",pendingReminderAction);state.putInt("reminderHour",reminderHour);state.putInt("reminderMinute",reminderMinute);}
     private void requestReminder(String action){
         StudyReminders.channel(this);pendingReminderAction=action;

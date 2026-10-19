@@ -111,3 +111,9 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Added a repeatable Android runner that refuses absent/unauthorized or ambiguous devices, optionally upgrades with data-preserving install -r, checks the expected 18-fixture result, and removes only its test APK in finally. No OS permission grants or real inbox changes are performed.
 - PowerShell syntax validation passed. The absent-device preflight correctly refused to run. The phone remains disconnected; the existing reconnect request is pending and is not repeated. Device delivery remains unverified.
 - Previous private source publication succeeded: appgdep_6ad64708cde08191a17df54a81a6fb54, source 0577265a6321405ac36d45dcd441e99a6ff5cff4, environment revision 1.
+
+## Android notice transfer (19 October)
+- Preview 0.4 adds explicit system-file-picker export of the selected group's bounded local inbox. A confirmation describes the exported private text and selected-folder exposure. Export rechecks capture/group/retention and does not add network or WhatsApp actions.
+- College inbox now accepts the NAV JSON export, validates every group and original received time, previews notices before saving, skips duplicates, and creates review suggestions rather than applying tasks. Validation repeats at commit time. Files over 500 KB, more than 100 notices, blank/oversized text, future/stale dates and mixed groups are rejected.
+- Dedicated notice transfer checks, core/isolation checks, TypeScript, production web build, Android main/test APK build, lint and APK signature verification pass. Preview SHA-256: 0b2edde4cba3dda7e8bc48816fc6dd3b8eb89eb07c301cf7b6218f02b6b6abc8.
+- This is a reviewed manual bridge. Unattended native-to-cloud ingestion remains unfinished. Phone remains disconnected; 0.4 installation, SAF export and real reminder/WhatsApp receipt acceptance are pending. Full product is not complete.
