@@ -20,6 +20,7 @@ public final class CollegeNotificationListener extends NotificationListenerServi
         if (!title.equals(prefs.getString("group", ""))) return;
         // Store only bounded, recent message text from the approved conversation.
         synchronized (CollegeNotificationListener.class) {
+            if (!prefs.getBoolean("enabled", false) || !title.equals(prefs.getString("group", ""))) return;
             try {
                 long now = System.currentTimeMillis();
                 JSONArray existing = new JSONArray(prefs.getString("inbox", "[]"));
