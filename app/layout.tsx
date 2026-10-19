@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "NANBA · Plan. Learn. Finish.",
+  title: "NAV · Plan. Learn. Finish.",
   description: "Your learning plan, college deadlines and daily progress in one private workspace.",
   manifest: "/manifest.webmanifest",
   icons: {

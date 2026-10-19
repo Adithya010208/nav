@@ -7,6 +7,8 @@ import {emptyWorkspace,newTask,planWithinCapacity,validDate,dateInZone,addDays} 
 import {roadmapTopics,makeDailyPlan} from './lib/roadmap';
 import {suggestFromMessage} from './lib/college';
 import {workspaceSchema} from './lib/validation';
+import {wallTimeToUTC,calendarFile} from './lib/calendar';
+import {aiOutput} from './lib/ai';
 const w=emptyWorkspace();w.profile.startDate='2026-10-19';w.profile.onboarded=true;w.topics=roadmapTopics();
 assert.equal(w.topics.length,18);assert.equal(validDate('2026-02-30'),false);assert.equal(validDate('2028-02-29'),true);assert.equal(addDays('2026-12-31',1),'2027-01-01');
 assert.equal(dateInZone('Asia/Kolkata',new Date('2026-10-18T20:00:00Z')),'2026-10-19');
@@ -16,6 +18,10 @@ const constrained=emptyWorkspace();constrained.profile.startDate='2026-10-19';co
 const a=newTask({title:'urgent',minutes:60,date:'2026-10-19',due:'2026-10-20'}),b=newTask({title:'later',minutes:90,date:'2026-10-19'}),fixed=newTask({title:'fixed',minutes:100,date:'2026-10-20'});const p=planWithinCapacity([a,b,fixed],[a.id,b.id],'2026-10-20',150);assert.equal(p.placements[a.id],'2026-10-21');assert.equal(p.late.length,1);assert.equal(p.placements[b.id],'2026-10-21');assert.equal(planWithinCapacity([newTask({id:'big',minutes:480})],['big'],'2026-10-20',150).unplaced[0],'big');
 const source={id:'s',text:'Submit DBMS record soon',group:'College',receivedAt:'2026-10-19T12:00:00Z',importedAt:'2026-10-19T12:00:00Z',title:'DBMS',fingerprint:'f'};let s=suggestFromMessage(source,[],'2026-10-19');assert.equal(s[0].due,'');assert.equal(s[0].confidence,'review');s=suggestFromMessage({...source,text:'Submit DBMS record by 2026-10-22'},[],'2026-10-19');assert.equal(s[0].due,'2026-10-22');s=suggestFromMessage({...source,text:'I think DBMS exam is tomorrow'},[],'2026-10-19');assert.equal(s[0].confidence,'review');assert.equal(s[0].due,'2026-10-20');assert.equal(suggestFromMessage({...source,text:'Anyone coming today?'},[],'2026-10-19').length,0);
 assert.ok(workspaceSchema.safeParse(w).success);assert.equal(workspaceSchema.safeParse({...w,tasks:[...w.tasks,w.tasks[0]]}).success,false);assert.equal(workspaceSchema.safeParse({...w,profile:{...w.profile,timezone:'invalid'}}).success,false);assert.equal(workspaceSchema.safeParse({...w,tasks:[newTask({sourceId:'missing'})]}).success,false);
+assert.equal(wallTimeToUTC('2030-01-02','18:30','Asia/Kolkata').toISOString(),'2030-01-02T13:00:00.000Z');
+assert.equal(wallTimeToUTC('2030-07-02','18:30','America/New_York').toISOString(),'2030-07-02T22:30:00.000Z');
+const ics=calendarFile([newTask({title:'First',date:'2030-01-02',minutes:60}),newTask({title:'Second',date:'2030-01-02',minutes:30,due:'2030-01-03'})],w.profile);assert.ok(ics.includes('DTSTART:20300102T130000Z'));assert.ok(ics.includes('DTSTART:20300102T140000Z'));assert.ok(ics.includes('DTSTART;VALUE=DATE:20300103'));
+assert.equal(aiOutput.safeParse({answer:'ok',suggestions:[{title:'x',minutes:999,category:'College',due:'2026-02-30',reason:'x'}]}).success,false);
 console.log('Core checks passed: roadmap, capacity, duplicate plan prevention, rescheduling, deadline uncertainty, timezone, schema integrity.');`;
 await build({stdin:{contents:test,resolveDir:process.cwd(),sourcefile:'core-tests.ts'},bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/tests/core.mjs'});
 const result=spawnSync(process.execPath,['.sites-runtime/tests/core.mjs'],{stdio:'inherit'});process.exitCode=result.status||0;

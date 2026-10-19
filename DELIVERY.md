@@ -1,6 +1,8 @@
-# NANBA delivery and release evidence
+# NAV personal assistant — delivery and release evidence
 
-The requested product is a personal companion for learning, college obligations, accountability and reminders across Windows and Android. A phase is complete only when its acceptance checks pass. Deployed prototype: https://nanba-study-companion.opalmug128.chatgpt.site.
+Scope: NAV only. Nanba AI, the separate private communication product for two friends, is outside this project.
+
+The requested product is a personal companion for learning, college obligations, accountability and reminders across Windows and Android. A phase is complete only when its acceptance checks pass. Deployed prototype: https://nav-personal-assistant.opalmug128.chatgpt.site.
 
 ## Phase 1: Cloud foundation — in progress
 - ChatGPT sign-in; authenticated API; per-user database records; revision conflict protection.
@@ -38,3 +40,12 @@ The requested product is a personal companion for learning, college obligations,
 
 ## Source
 Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages. Six-phase plan: Oct 2026–Mar 2028; 150/180-minute daily schedule; weekly assessment and Sunday review; first 13 weeks and first seven days; evidence-led milestones and spaced practice at 3/14 days.
+
+
+## Verified implementation evidence (19 October 2026)
+- TypeScript checks, production builds, core planner/calendar/schema tests, and two-user data-isolation tests pass.
+- Local API tests verified sign-in, persistence, revision conflicts and private file access.
+- Desktop and phone layouts were visually checked.
+- PDF.js extracted all eight pages of the supplied roadmap. Browser PDF controls still require final interaction testing.
+- Live AI, automatic WhatsApp ingestion, closed-app push reminders, and native companions remain incomplete or unverified.
+- Hosted sign-in encountered an OpenAI authentication-page error; signed-in production flow requires rechecking.
