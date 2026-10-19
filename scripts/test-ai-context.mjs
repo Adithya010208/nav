@@ -1,0 +1,18 @@
+import {build} from 'esbuild';
+import {mkdirSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+mkdirSync('.sites-runtime/tests',{recursive:true});
+const source=`import assert from 'node:assert/strict';
+import {emptyWorkspace,newTask} from './lib/model';
+import {aiContext} from './lib/ai';
+const w=emptyWorkspace(),now=new Date('2026-10-19T20:00:00Z');w.profile.timezone='Asia/Kolkata';w.profile.dailyMinutes=150;
+w.tasks=[newTask({id:'urgent',title:'Old urgent notice',date:'2026-09-01',due:'2026-10-19',minutes:30}),...Array.from({length:100},(_,i)=>newTask({id:'done'+i,title:'Completed '+i,date:'2026-09-01',status:'done'})),newTask({id:'today',title:'Current plan',date:'2026-10-20',minutes:180}),newTask({id:'archived',title:'Archived private task',date:'2026-10-20',archived:true,minutes:100})];
+w.sources=[{id:'source',text:'Submit tomorrow',receivedAt:'2026-10-18T20:00:00Z',importedAt:now.toISOString(),group:'College',title:'Notice',fingerprint:'fixture'}];
+w.sessions=[{id:'focus',taskId:'today',title:'Current plan',startedAt:'2026-10-19T18:00:00Z',endedAt:'2026-10-19T18:30:00Z',seconds:1800,note:''},{id:'future',taskId:'today',title:'Future',startedAt:'2026-10-21T18:00:00Z',endedAt:'2026-10-21T18:30:00Z',seconds:999,note:''}];
+const before=JSON.stringify(w),c=aiContext(w,'briefing','source',now);
+assert.equal(c.currentDate,'2026-10-20');assert.equal(c.tasks[0].title,'Old urgent notice');assert.equal(c.tasks[1].title,'Current plan');assert.equal(c.tasks.length,80);assert.equal(c.planning.omittedTaskCount,22);assert.equal(c.planning.overdue,1);assert.equal(c.planning.plannedMinutes,180);assert.equal(c.planning.availableMinutes,0);assert.equal(c.planning.overbookedMinutes,30);assert.equal(c.evidence.focusSecondsLast7Days,1800);assert.equal(c.selectedSource,undefined);assert.equal(JSON.stringify(w),before);
+const college=aiContext(w,'college','source',now);assert.equal(college.selectedSource.referenceDate,'2026-10-19');assert.equal(college.selectedSource.text,'Submit tomorrow');assert.equal(aiContext(w,'college','other',now).selectedSource,undefined);
+w.tasks.find(t=>t.id==='today').minutes=60;assert.equal(aiContext(w,'briefing',undefined,now).planning.availableMinutes,90);
+console.log('AI context checks passed: local dates, urgent-task inclusion, capacity/overbooking, bounded context, evidence totals, archived exclusions, source consent and original-date grounding.');`;
+await build({stdin:{contents:source,resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/tests/ai-context.mjs'});
+const r=spawnSync(process.execPath,['.sites-runtime/tests/ai-context.mjs'],{stdio:'inherit'});process.exitCode=r.status??1;
