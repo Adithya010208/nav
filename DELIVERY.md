@@ -49,3 +49,12 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - PDF.js extracted all eight pages of the supplied roadmap. Browser PDF controls still require final interaction testing.
 - Live AI, automatic WhatsApp ingestion, closed-app push reminders, and native companions remain incomplete or unverified.
 - Hosted sign-in encountered an OpenAI authentication-page error; signed-in production flow requires rechecking.
+
+## Windows companion build evidence
+- Added the separate NAV desktop companion source under `companions/windows`; it contains no communication-app features.
+- Packaged executable: task outputs `nav-windows/NAV-win32-x64/NAV.exe` (run from its complete folder).
+- Reminder engine unit checks pass for time zones, deadline/study timing, and completed/archived exclusions.
+- Hidden startup checks passed for both development and packaged executables: native window creation, nonempty icon, Ctrl+Space registration, notification API support, node integration disabled, context isolation, sandbox and web security enabled.
+- Tray menu includes open/mini window, background reminders, optional Windows startup, test notification, sign out and quit.
+- Still unverified: hosted sign-in from the desktop app, actual toast/sound delivery and reminders during a real signed-in background session. Native API support alone does not prove delivery.
+- Android companion and actual device testing remain outstanding. The Android SDK is not present on this machine; Java 26 is installed.
