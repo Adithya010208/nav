@@ -21,7 +21,7 @@ The requested product is a personal companion for learning, college obligations,
 - Live WhatsApp is strictly read-only: no outgoing messaging or modification function anywhere.
 - Verify imports, vague dates, revised notices, deduplication and private file access.
 
-## Phase 4: AI services — blocked on a replacement private credential
+## Phase 4: AI services — in progress with Google Gemini
 - Orchestration, roadmap, planning, college/deadline/document interpretation, motivation, tutoring, reviews.
 - Bounded structured outputs, validated suggestions, explicit apply step, data consent and cost/error controls.
 - The credential exposed in chat must be revoked; it will not be used or saved.
@@ -84,3 +84,13 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Current preview APK SHA-256: `29f4c05c6a8d08b478f898632d36d0b9dedea8a8670d6c59c5d7b7f6a93d26ef`. Evidence: task outputs `nav-android-device-checks.txt`.
 - User confirmed the phone browser shows the same 18 milestones and four tasks as the desktop account. Hosted sign-in and cloud plan visibility are now verified across desktop and Android browsers.
 - Still pending: a real incoming approved-group notice, automatic native-to-cloud ingestion, background reminders and live AI. Secure key setup tools are currently unavailable because the plugin is reported not installed; no replacement key has been created or used.
+
+
+## Gemini connection implementation (19 October)
+- User chose Gemini after repeated OpenAI plugin OAuth failures and saved the key privately in ignored `.dev.vars`. The exposed OpenAI key remains unused. Do not ask the user to retry the skipped OpenAI plugin setup.
+- Added a fixed-endpoint server Gemini adapter with structured output validation, timeouts, quota/error handling and no automatic cross-provider fallback. Provider-specific consent is required; a mismatch returns 409 before any provider call.
+- A real synthetic tutoring request with `gemini-3.5-flash-lite` passed output validation. The initially selected 3.8 model returned service errors, so hosting is configured to the tested lightweight model. The credential was transferred privately into the existing Site's secret storage; no plaintext credential was printed, committed or included in browser code.
+- Mocked checks pass for Gemini success, incomplete/invalid responses, quota errors, cross-user separation, provider changes and context-free connection tests. TypeScript checks pass. Browser/server testing caught and fixed Cloudflare's rejection of `redirect:error`; requests now use manual redirects and reject non-success responses, preserving credentials at the fixed provider endpoint.
+- Production deployment and hosted connection-test evidence will be recorded after verification. Android background reminder implementation remains outstanding; automatic selected-group native-to-cloud ingestion remains outstanding.
+
+- Local browser end-to-end connection test now returns HTTP 200 and displays “Google Gemini connection verified”; no workspace context was sent. Production build, TypeScript, core and provider-isolation checks pass. The private credential is absent from source and built artifacts.

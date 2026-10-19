@@ -23,3 +23,10 @@ Keep credentials out of code, browser storage and commits. Hosted AI uses server
 Live WhatsApp ingestion, scanned-document OCR, closed-app push delivery, and native Windows/Android companions remain unfinished. Calendar export is an importable snapshot, not automatic synchronization. Device notifications require user permission and an open app. See DELIVERY.md for phase status and verification limits.
 
 Internal legacy browser-storage keys remain compatible with the earlier prototype. The application is NAV throughout its user-facing UI.
+
+
+## AI providers
+
+NAV supports server-side Google Gemini and the existing OpenAI adapter. Set `AI_PROVIDER=gemini`, `GEMINI_API_KEY` as a private secret, and optional `GEMINI_MODEL`. The current tested deployment uses `gemini-3.5-flash-lite`; the model is configurable without shipping a key to clients. `AI_PROVIDER=openai` selects `OPENAI_API_KEY` / `OPENAI_MODEL` explicitly. There is no automatic cross-provider fallback.
+
+The displayed provider is included in sharing consent; requests are rejected if the server provider changed since consent. The connection-test button sends only a fixed sample question and empty context. Normal requests send the bounded workspace context described in the form only after consent. Provider terms and API quotas apply. Never put any provider key in source, client storage, screenshots or chat. Local `.dev.vars` is ignored by Git; hosted secrets are stored separately in Sites.
