@@ -1,6 +1,6 @@
 # NAV Android companion — source preview
 
-This is not a released APK. Build and device acceptance checks are outstanding. It opens the private NAV site in the system browser and offers an optional local notice inbox. It contains no WhatsApp outgoing action, reply, cancellation, accessibility service, network ingestion, or account credential handling.
+This is a preview, not a finished device release. `assembleDebug`, `lintDebug` and debug APK signature verification pass. A preview APK is available in the task outputs as `nav-android-preview.apk`; actual device acceptance checks are outstanding. It opens the private NAV site in the system browser and offers an optional local notice inbox. It contains no WhatsApp outgoing action, reply, cancellation, accessibility service, network ingestion, or account credential handling.
 
 Capture is off by default. Save one exact group title, then explicitly grant NAV notification access in Android Settings. Only `com.whatsapp` group MessagingStyle notifications with that exact title pass. Direct chats, other packages, title variations, empty/oversized text and messages older than 24 hours fail closed. The local inbox deduplicates text/timestamp pairs, retains at most 100 messages / 100,000 characters, and excludes notices older than seven days. Changing group or disconnecting clears the inbox. Android backups are disabled.
 

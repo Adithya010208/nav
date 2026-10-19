@@ -20,7 +20,16 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         prefs = getSharedPreferences("college", MODE_PRIVATE);
         ScrollView scroll = new ScrollView(this);
-        layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL); layout.setPadding(24, 32, 24, 32);
+        layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
+        int padding = Math.round(20 * getResources().getDisplayMetrics().density);
+        layout.setPadding(padding, padding, padding, padding);
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            return insets;
+        });
         scroll.addView(layout); setContentView(scroll);
         text("NAV · personal study assistant", 26);
         button("Open NAV securely in your browser", () -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(SITE))));

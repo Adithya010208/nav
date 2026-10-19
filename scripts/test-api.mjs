@@ -18,4 +18,5 @@ const uploaded=await request('/api/files',{method:'POST',headers:{Origin:origin}
 assert.equal((await fetch(origin+'/api/files/'+id)).status,401);
 const file=await request('/api/files/'+id);assert.equal(file.status,200);assert.equal(await file.text(),'private test document');assert.match(file.headers.get('content-disposition'),/attachment/);assert.equal(file.headers.get('cache-control'),'private, no-store');
 const bad=new FormData();bad.set('file',new File(['not a pdf'],'fake.pdf',{type:'application/pdf'}));assert.equal((await request('/api/files',{method:'POST',headers:{Origin:origin},body:bad})).status,400);
+assert.equal((await request('/api/files/'+id,{method:'DELETE',headers:{Origin:origin,'X-NAV-Confirm':'delete-document'}})).status,200);assert.equal((await request('/api/files/'+id)).status,404);
 console.log('Local API checks passed: anonymous denial, sign-in, persistence, stale-revision rejection, origin validation, schema rejection, private file upload/download and PDF signature validation.');

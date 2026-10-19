@@ -13,8 +13,12 @@ public final class CollegeNotificationListener extends NotificationListenerServi
         if (!"com.whatsapp".equals(posted.getPackageName())) return;
         SharedPreferences prefs = getSharedPreferences("college", MODE_PRIVATE);
         if (!prefs.getBoolean("enabled", false)) return;
-        Notification.MessagingStyle style = Notification.MessagingStyle.extractMessagingStyleFromNotification(posted.getNotification());
-        if (style == null || !style.isGroupConversation()) return;
+        Notification.Style recovered;
+        try { recovered = Notification.Builder.recoverBuilder(this, posted.getNotification()).getStyle(); }
+        catch (RuntimeException invalidNotification) { return; }
+        if (!(recovered instanceof Notification.MessagingStyle)) return;
+        Notification.MessagingStyle style = (Notification.MessagingStyle) recovered;
+        if (!style.isGroupConversation()) return;
         CharSequence rawTitle = style.getConversationTitle();
         String title = rawTitle == null ? "" : rawTitle.toString();
         if (!title.equals(prefs.getString("group", ""))) return;
