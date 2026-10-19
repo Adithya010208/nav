@@ -1,1 +1,17 @@
-{"name":"nav-desktop","productName":"NAV","version":"0.2.0","description":"NAV personal study assistant for Windows","main":"main.cjs","private":true,"scripts":{"start":"electron .","test":"node test.cjs","package":"node package.mjs"},"devDependencies":{"electron":"44.9.0","@electron/packager":"20.3.0"}}
+{
+  "name": "nav-desktop",
+  "productName": "NAV",
+  "version": "0.3.0",
+  "description": "NAV personal study assistant for Windows",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test.cjs",
+    "package": "node package.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "@electron/packager": "20.3.0"
+  }
+}

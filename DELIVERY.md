@@ -117,3 +117,13 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - College inbox now accepts the NAV JSON export, validates every group and original received time, previews notices before saving, skips duplicates, and creates review suggestions rather than applying tasks. Validation repeats at commit time. Files over 500 KB, more than 100 notices, blank/oversized text, future/stale dates and mixed groups are rejected.
 - Dedicated notice transfer checks, core/isolation checks, TypeScript, production web build, Android main/test APK build, lint and APK signature verification pass. Preview SHA-256: 0b2edde4cba3dda7e8bc48816fc6dd3b8eb89eb07c301cf7b6218f02b6b6abc8.
 - This is a reviewed manual bridge. Unattended native-to-cloud ingestion remains unfinished. Phone remains disconnected; 0.4 installation, SAF export and real reminder/WhatsApp receipt acceptance are pending. Full product is not complete.
+
+## Windows user acceptance (19 October)
+- User confirmed the packaged Windows companion signs in, displays the saved plan, and delivers the tray Test notification with sound. This verifies the actual native account/display and test-toast path, beyond API/startup checks.
+- Scheduled background deadline/study delivery over a real due time remains separate and unverified. Android 0.4 device acceptance and automatic selected-group cloud ingestion remain pending.
+
+## Windows reminder reliability follow-up
+- Added a single-flight, cancellable 15-second poll deadline. Disabled reminders, sign-out and navigation cancel pending account responses; late responses cannot notify after cancellation. Resume/unlock triggers immediate checks. Network/notification failures release the poll lock.
+- Windows planner and new poll checks pass, including overlap, cancellation, disabled state, timeout recovery and failure handling. A separate preview 0.3 package preserves the currently running, user-verified 0.2 installation. Android remains disconnected and the existing device request is pending. Scheduled actual background notification acceptance is still outstanding; full product remains incomplete.
+
+- Preview 0.3 packaged and passed hidden native startup/security smoke checks (window, icon, shortcut, notification API, sandbox, isolation, web security). Packaging initially targeted the default output before cancellation; that output was restored from the verified 0.3 build at the original NAV.exe path. Account/session data was not deleted or changed. The separate 0.3 artifact is also retained. User acceptance recorded above applies to 0.2; new polling behavior has fixture/startup evidence, not real timed delivery evidence.

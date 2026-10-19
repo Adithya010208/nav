@@ -10,3 +10,5 @@ Native Electron companion for the existing NAV account and cloud workspace. No t
 The packaged build is unsigned. Native startup and reminder-logic checks are separate from end-to-end hosted sign-in and delivery verification. See DELIVERY.md for release status.
 
 Development: `npm install`, `npm start`. Unit checks: `npm test`. Packaging: `npm run package` produces an unpacked Windows application under the task outputs directory. Run NAV.exe from that complete folder; do not move the executable alone.
+
+Preview 0.3 hardens background polls: one in flight, a 15-second deadline, late-response rejection on navigation/sign-out/disable, and immediate checks after resume/unlock. Failed fetches do not fabricate or mark delivered reminders. Poll fixtures cover overlap, cancellation, disabled state, timeout recovery and errors. Test notification acceptance does not prove a scheduled background deadline was delivered.
