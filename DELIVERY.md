@@ -94,3 +94,15 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Production deployment and hosted connection-test evidence will be recorded after verification. Android background reminder implementation remains outstanding; automatic selected-group native-to-cloud ingestion remains outstanding.
 
 - Local browser end-to-end connection test now returns HTTP 200 and displays “Google Gemini connection verified”; no workspace context was sent. Production build, TypeScript, core and provider-isolation checks pass. The private credential is absent from source and built artifacts.
+
+- Hosted Gemini verification passed after private deployment `appgdep_6ad64233a3588191af3370fd99f8fa10` (environment revision 1, source `3910bfda5cbc2889c624b338d0d5f24bec672e55`). The real signed-in browser displayed “Google Gemini connection verified. No workspace context was sent for this test.” Evidence: task outputs `nav-gemini-verified.png` and `nav-gemini-release-status.json`. No further OpenAI plugin setup is needed for the selected Gemini configuration.
+
+## Android local background reminder implementation (19 October)
+- Preview 0.3 adds an opt-in daily study time, Android POST_NOTIFICATIONS permission request, test notification, notification-channel settings, disable control and next-reminder status. Nothing is enabled automatically during install.
+- Android inexact AlarmManager alarms can run after the activity closes; an explicit receiver reschedules on boot, time-zone/time changes and package replacement. Scheduling and notification posting check the current permission/channel state. Disabling cancels only NAV's own alarm and notification. Force-stop and battery-related delivery limits are explained in the app.
+- This is a phone-local generic study nudge, not cloud-synced task/deadline push. It does not claim precise delivery. Website calendar export and in-app task reminders remain separate.
+- College inbox status now distinguishes a selected group with revoked OS notification access from actively enabled capture. Existing group preferences and notice retention are preserved.
+- Eight pure Java next-time checks passed, including India time, next day/year, DST gap/repeated hour and invalid time. Android compilation, test APK compilation and lint pass. The extended isolated device checks are prepared but not yet executed for 0.3.
+- The previously authorized phone is currently disconnected. Installation, real notification permission/display/sound, closed-app delivery, disable and reboot acceptance checks remain pending. Full product remains incomplete.
+
+- Final preview 0.3 rebuild, test-APK build, lint and APK signature verification passed. Exported task artifact nav-android-preview.apk SHA-256: 84066d6c95af7368f863f8efa069f540f0c27f493b7ba602835f139b0a3716ac. Device checks remain pending; the phone is disconnected.

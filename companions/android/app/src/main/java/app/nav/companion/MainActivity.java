@@ -16,6 +16,10 @@ public final class MainActivity extends Activity {
     private LinearLayout layout;
     private TextView inbox;
     private SharedPreferences prefs;
+    private TextView reminderStatus;
+    private TextView reminderTime;
+    private int reminderHour=18,reminderMinute=30;
+    private String pendingReminderAction="";
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("college", MODE_PRIVATE);
@@ -33,6 +37,18 @@ public final class MainActivity extends Activity {
         scroll.addView(layout); setContentView(scroll);
         text("NAV · personal study assistant", 26);
         button("Open NAV securely in your browser", () -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(SITE))));
+        text("Daily study reminder",22);
+        text("A reminder can run while NAV is closed. Choose a time in your phone’s time zone. Android may delay delivery to save battery. Force-stopping NAV stops reminders until you reopen it. This phone schedule does not sync task deadlines from the website.",16);
+        SharedPreferences reminderPrefs=StudyReminders.prefs(this);
+        reminderHour=reminderPrefs.getInt("hour",18);reminderMinute=reminderPrefs.getInt("minute",30);
+        if(state!=null){pendingReminderAction=state.getString("pendingReminderAction","");reminderHour=state.getInt("reminderHour",reminderHour);reminderMinute=state.getInt("reminderMinute",reminderMinute);}
+        reminderTime=text("",18);
+        button("Choose study reminder time",()->new android.app.TimePickerDialog(this,(picker,hour,minute)->{reminderHour=hour;reminderMinute=minute;refreshReminder();},reminderHour,reminderMinute,true).show());
+        button("Enable daily study reminder",()->requestReminder("enable"));
+        button("Test NAV notification",()->requestReminder("test"));
+        button("Disable daily study reminder",()->{StudyReminders.disable(this);refreshReminder();});
+        button("NAV notification settings",()->startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName())));
+        reminderStatus=text("",16);refreshReminder();
         text("Optional college notice inbox", 22);
         text("Only new Android notifications from one exact WhatsApp group are retained locally. Notification access is broad at the OS level; NAV filters before storage. Muted, hidden, missing and old messages cannot be recovered. No replies or changes to WhatsApp are supported. Automatic cloud ingestion is not connected in this build.", 16);
         EditText group = new EditText(this); group.setHint("Exact approved WhatsApp group title"); group.setSingleLine(true); group.setText(prefs.getString("group", "")); layout.addView(group);
@@ -55,11 +71,33 @@ public final class MainActivity extends Activity {
         inbox = text("", 16); inbox.setTextIsSelectable(true);
         refresh();
     }
-    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); }
+    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.schedule(this);refreshReminder();} }
+    @Override public void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);state.putString("pendingReminderAction",pendingReminderAction);state.putInt("reminderHour",reminderHour);state.putInt("reminderMinute",reminderMinute);}
+    private void requestReminder(String action){
+        StudyReminders.channel(this);pendingReminderAction=action;
+        if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},7310);return;}
+        applyReminderAction();
+    }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results){super.onRequestPermissionsResult(requestCode,permissions,results);if(requestCode==7310){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED)applyReminderAction();else{pendingReminderAction="";reminderStatus.setText("Notifications were not enabled. You can change this later in NAV notification settings.");}}}
+    private void applyReminderAction(){
+        String action=pendingReminderAction;pendingReminderAction="";
+        if(!StudyReminders.canNotify(this)){reminderStatus.setText("Notifications are blocked. Open NAV notification settings to enable this channel.");return;}
+        if("test".equals(action)){reminderStatus.setText(StudyReminders.show(this,true)?"Test accepted by Android. Check that your phone displays it and allows sound.":"The notification could not be sent.");return;}
+        if("enable".equals(action)){if(!StudyReminders.enable(this,reminderHour,reminderMinute)){reminderStatus.setText("Reminder could not be scheduled. Check notification settings and retry.");return;}refreshReminder();}
+    }
+    private void refreshReminder(){
+        reminderTime.setText(String.format(java.util.Locale.ROOT,"Chosen time: %02d:%02d · %s",reminderHour,reminderMinute,java.util.TimeZone.getDefault().getID()));
+        if(reminderStatus==null)return;
+        SharedPreferences settings=StudyReminders.prefs(this);
+        if(!settings.getBoolean("enabled",false)){reminderStatus.setText("Daily reminder is off.");return;}
+        if(!StudyReminders.canNotify(this)){reminderStatus.setText("Daily reminder is paused because notifications are blocked.");return;}
+        long next=settings.getLong("nextAt",0);reminderStatus.setText(next>0?"Enabled. Next reminder requested for "+new java.util.Date(next)+". Android controls actual delivery time.":"Enabled, but no reminder is scheduled. Disable and enable it to retry.");
+    }
     private TextView text(String value,int size) { TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setPadding(0,12,0,12);layout.addView(view);return view; }
     private void button(String label,Runnable action) { Button b=new Button(this);b.setText(label);b.setOnClickListener(v->action.run());layout.addView(b,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT)); }
     private void refresh() {
-        StringBuilder result = new StringBuilder(prefs.getBoolean("enabled",false)?"Capture enabled for: "+prefs.getString("group",""):"Capture disconnected");
+        boolean allowed=getSystemService(android.app.NotificationManager.class).isNotificationListenerAccessGranted(new android.content.ComponentName(this,CollegeNotificationListener.class));
+        StringBuilder result = new StringBuilder(prefs.getBoolean("enabled",false)?(allowed?"Capture enabled for: ":"Capture paused: notification access is off. Selected group: ")+prefs.getString("group",""):"Capture disconnected");
         try {
             synchronized (CollegeNotificationListener.class) {
                 JSONArray entries=new JSONArray(prefs.getString("inbox","[]")); JSONArray kept=new JSONArray(); long cutoff=System.currentTimeMillis()-7L*86400000;

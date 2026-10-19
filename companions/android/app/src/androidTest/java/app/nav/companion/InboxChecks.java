@@ -46,6 +46,15 @@ public final class InboxChecks extends Instrumentation {
             check(inbox().length()==100,"retention must be capped");check(inbox().getJSONObject(0).getString("text").equals("Fixture 110"),"newest message must remain first");
             prefs.edit().putBoolean("enabled",false).remove("inbox").commit();
             capture("com.whatsapp","NAV Fixture College",true,"After disconnect",now);check(inbox().length()==0,"disconnect must stop capture");
+            check(StudySchedule.nextAt(18,30,java.time.Instant.parse("2026-10-19T12:00:00Z").toEpochMilli(),"Asia/Kolkata")==java.time.Instant.parse("2026-10-19T13:00:00Z").toEpochMilli(),"phone schedule must honor wall time");
+            check(StudySchedule.nextAt(18,30,java.time.Instant.parse("2026-10-19T13:00:00Z").toEpochMilli(),"Asia/Kolkata")==java.time.Instant.parse("2026-10-20T13:00:00Z").toEpochMilli(),"fired time must roll to tomorrow");
+            check(StudySchedule.nextAt(2,30,java.time.Instant.parse("2026-03-08T06:00:00Z").toEpochMilli(),"America/New_York")==java.time.Instant.parse("2026-03-08T07:30:00Z").toEpochMilli(),"DST gap must resolve safely");
+            boolean invalidTime=false;try{StudySchedule.nextAt(24,0,now,"UTC");}catch(java.time.DateTimeException expected){invalidTime=true;}check(invalidTime,"invalid time must fail");
+            android.content.Intent testIntent=new android.content.Intent(context,StudyAlarmReceiver.class).setAction("app.nav.companion.TEST_NOOP");
+            android.app.PendingIntent testAlarm=android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_UPDATE_CURRENT|android.app.PendingIntent.FLAG_IMMUTABLE);
+            android.app.AlarmManager manager=context.getSystemService(android.app.AlarmManager.class);
+            try{manager.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP,now+86400000L,testAlarm);check(android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE)!=null,"inexact alarm must register on device");}finally{manager.cancel(testAlarm);testAlarm.cancel();}
+            check(android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE)==null,"test alarm must be removed");
             result.putString("result","PASS: "+checks+" Android notification isolation/retention checks");finish(0,result);
         } catch(Throwable failure) { result.putString("result","FAIL: "+failure.getClass().getSimpleName()+": "+failure.getMessage());finish(1,result); }
         finally { prefs.edit().clear().commit(); }
