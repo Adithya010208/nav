@@ -1,0 +1,36 @@
+import {build} from 'esbuild';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,readdirSync,mkdirSync} from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);mkdirSync('.sites-runtime/tests',{recursive:true});
+const db=new DatabaseSync(':memory:');for(const f of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync('drizzle/'+f,'utf8'));
+globalThis.__deviceUser={userId:'alice'};
+globalThis.__deviceEnv={DB:{prepare(sql){return {bind(...args){const st=db.prepare(sql);return {async first(){if(sql.startsWith('UPDATE workspaces')&&globalThis.__beforeSave){const hook=globalThis.__beforeSave;globalThis.__beforeSave=null;hook();}return st.get(...args)||null;},async run(){return st.run(...args);},async all(){return {results:st.all(...args)};}};}};}}};
+const plugin={name:'device-test-bindings',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'fixture'}));b.onResolve({filter:/^@\/app\/chatgpt-auth$/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({contents:path==='env'?'export const env=globalThis.__deviceEnv;':'export async function getChatGPTUser(){return globalThis.__deviceUser;}'}));}};
+async function compile(entry,name){const out='.sites-runtime/tests/'+name+'.cjs';await build({entryPoints:[entry],bundle:true,platform:'node',format:'cjs',outfile:out,plugins:[plugin]});return require('../'+out);}
+const devices=await compile('app/api/devices/route.ts','devices'),inbox=await compile('app/api/device-inbox/route.ts','device-inbox'),{emptyWorkspace}=await compile('lib/model.ts','device-model');
+for(const user of ['alice','bob']){const w=emptyWorkspace();w.profile.approvedGroup=user==='alice'?'College A':'College B';db.prepare('INSERT INTO workspaces VALUES (?,0,?,?)').run(user,JSON.stringify(w),new Date().toISOString());}
+const origin='https://nav.test',request=(path,method,body,headers={})=>new Request(origin+path,{method,headers:{'Content-Type':'application/json',Origin:origin,...headers},body:JSON.stringify(body)});
+const create=()=>devices.POST(request('/api/devices','POST',{label:'Android fixture',confirm:true}));
+globalThis.__deviceUser=null;assert.equal((await create()).status,401);globalThis.__deviceUser={userId:'alice'};
+assert.equal((await devices.POST(request('/api/devices','POST',{label:'Phone',confirm:true},{Origin:'https://other.test'}))).status,403);
+assert.equal((await devices.POST(request('/api/devices','POST',{label:'Phone'}))).status,400);
+const created=await create();assert.equal(created.status,201);const credential=await created.json();assert.match(credential.token,/^navd_[a-f0-9]{64}$/);assert.notEqual(db.prepare('SELECT token_hash FROM devices').get().token_hash,credential.token);
+const list=await (await devices.GET()).json();assert.equal(list.devices.length,1);assert.equal(JSON.stringify(list).includes(credential.token),false);assert.equal('token_hash' in list.devices[0],false);
+const bundle={format:'nav-college-notices',version:1,group:'College A',notices:[{group:'College A',text:'Submit assignment tomorrow',receivedAt:Date.now()-1000}]};
+const send=(body=bundle,token=credential.token)=>inbox.POST(request('/api/device-inbox','POST',body,{Authorization:'Bearer '+token}));
+assert.equal((await send(bundle,'wrong')).status,401);
+assert.equal((await send({...bundle,group:'College B'})).status,400);
+const bobBefore=db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('bob').payload;
+globalThis.__deviceUser=null;const synced=await send({...bundle,user_id:'bob'});assert.equal(synced.status,200);assert.equal((await synced.json()).added,1);
+assert.equal(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('bob').payload,bobBefore);
+const saved=JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('alice').payload);assert.equal(saved.sources.length,1);assert.equal(saved.tasks.length,0);assert.ok(saved.suggestions.length>0);
+const revision=db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get('alice').revision;assert.equal((await (await send()).json()).added,0);assert.equal(db.prepare('SELECT revision FROM workspaces WHERE user_id=?').get('alice').revision,revision);
+globalThis.__deviceUser={userId:'bob'};assert.equal((await (await devices.GET()).json()).devices.length,0);assert.equal((await devices.DELETE(request('/api/devices','DELETE',{id:credential.id}))).status,404);
+const next={...bundle,notices:[{...bundle.notices[0],text:'Complete lab record today'}]};globalThis.__beforeSave=()=>db.prepare('UPDATE workspaces SET revision=revision+1 WHERE user_id=?').run('alice');assert.equal((await send(next)).status,409);assert.equal(JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('alice').payload).sources.length,1);
+db.prepare('UPDATE devices SET usage_day=?,usage_count=240 WHERE id=?').run(new Date().toISOString().slice(0,10),credential.id);assert.equal((await send(next)).status,429);
+globalThis.__deviceUser={userId:'alice'};assert.equal((await devices.DELETE(request('/api/devices','DELETE',{id:credential.id}))).status,200);assert.equal((await send()).status,401);
+const expires=await (await create()).json();db.prepare('UPDATE devices SET expires_at=? WHERE id=?').run('2000-01-01T00:00:00.000Z',expires.id);assert.equal((await send(bundle,expires.token)).status,401);
+for(let n=0;n<5;n++)assert.equal((await create()).status,201);assert.equal((await create()).status,409);
+db.close();console.log('Device sync checks passed: signed-in issuance, scoped append without visitor identity, two-user isolation, secret hashing/redaction, exact group, deduplication, no task application, stale revisions, quota, revocation, expiry and device cap. No production credentials or messages used.');
