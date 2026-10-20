@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.os.Process;
 import android.service.notification.StatusBarNotification;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 /** Device-side fixtures only: never posts a notification or opens WhatsApp. */
 public final class InboxChecks extends Instrumentation {
@@ -55,6 +56,20 @@ public final class InboxChecks extends Instrumentation {
             android.app.AlarmManager manager=context.getSystemService(android.app.AlarmManager.class);
             try{manager.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP,now+86400000L,testAlarm);check(android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE)!=null,"inexact alarm must register on device");}finally{manager.cancel(testAlarm);testAlarm.cancel();}
             check(android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE)==null,"test alarm must be removed");
+            String fixtureScope="nav-sync-fixture";
+            try{
+                JSONObject secret=new JSONObject().put("deviceToken","navd_"+"a".repeat(64)).put("serviceToken","fixture-service-token-not-real").put("group","NAV Fixture College");
+                CloudCredentials.save(context,secret,fixtureScope);
+                check(CloudCredentials.read(context,fixtureScope).getString("serviceToken").equals(secret.getString("serviceToken")),"Keystore credential roundtrip must work");
+                check(!context.getSharedPreferences(fixtureScope,0).getAll().toString().contains(secret.getString("serviceToken")),"stored credential must not be plaintext");
+                boolean invalidCredential=false;try{CloudCredentials.validate(new JSONObject(secret.toString()).put("deviceToken","bad"));}catch(Exception rejected){invalidCredential=true;}check(invalidCredential,"invalid capability must fail");
+                context.getSharedPreferences(fixtureScope,0).edit().putString("ciphertext","AAAA").commit();
+                boolean tampered=false;try{CloudCredentials.read(context,fixtureScope);}catch(Exception rejected){tampered=true;}check(tampered,"tampered encrypted data must fail closed");
+            }finally{CloudCredentials.clear(context,fixtureScope);}
+            check(CloudCredentials.read(context,fixtureScope)==null,"test credentials must be removed");
+            prefs.edit().putString("inbox",new JSONArray().put(new JSONObject().put("group","NAV Fixture College").put("text","Synthetic selected notice").put("receivedAt",now)).put(new JSONObject().put("group","Other").put("text","Do not transfer").put("receivedAt",now)).put(new JSONObject().put("group","NAV Fixture College").put("text","Expired").put("receivedAt",now-8L*86400000)).toString()).commit();
+            Context isolated=new android.content.ContextWrapper(context){@Override public SharedPreferences getSharedPreferences(String name,int mode){return "college".equals(name)?prefs:super.getSharedPreferences(name,mode);}};
+            check(CloudSync.bundle(isolated,"NAV Fixture College").getJSONArray("notices").length()==1,"upload bundle must exclude other groups and expired notices");
             result.putString("result","PASS: "+checks+" Android notification isolation/retention checks");finish(0,result);
         } catch(Throwable failure) { result.putString("result","FAIL: "+failure.getClass().getSimpleName()+": "+failure.getMessage());finish(1,result); }
         finally { prefs.edit().clear().commit(); }

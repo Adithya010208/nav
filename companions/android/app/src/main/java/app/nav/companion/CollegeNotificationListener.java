@@ -58,6 +58,7 @@ public final class CollegeNotificationListener extends NotificationListenerServi
                     bounded.put(entry);
                 }
                 prefs.edit().putString("inbox", bounded.toString()).apply();
+                CloudSync.enqueue(context);
             } catch (Exception ignored) { /* malformed local state: retain nothing new */ }
         }
     }

@@ -18,6 +18,7 @@ public final class MainActivity extends Activity {
     private SharedPreferences prefs;
     private TextView reminderStatus;
     private TextView reminderTime;
+    private TextView cloudStatus;
     private int reminderHour=18,reminderMinute=30;
     private String pendingReminderAction="";
     @Override public void onCreate(Bundle state) {
@@ -50,24 +51,33 @@ public final class MainActivity extends Activity {
         button("NAV notification settings",()->startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName())));
         reminderStatus=text("",16);refreshReminder();
         text("Optional college notice inbox", 22);
-        text("Only new Android notifications from one exact WhatsApp group are retained locally. Notification access is broad at the OS level; NAV filters before storage. Muted, hidden, missing and old messages cannot be recovered. No replies or changes to WhatsApp are supported. Automatic cloud ingestion is not connected in this build.", 16);
+        text("Only new Android notifications from one exact WhatsApp group are retained locally. Notification access is broad at the OS level; NAV filters before storage. Muted, hidden, missing and old messages cannot be recovered. No replies or changes to WhatsApp are supported. Optional cloud sync below sends captured notices only to your private NAV account after secure setup and explicit opt-in.", 16);
         EditText group = new EditText(this); group.setHint("Exact approved WhatsApp group title"); group.setSingleLine(true); group.setText(prefs.getString("group", "")); layout.addView(group);
         button("Save approved group and enable capture", () -> {
             String value = group.getText().toString();
-            if (value.trim().isEmpty() || value.length() > 160) { Toast.makeText(this,"Enter the exact group title (1–160 characters).",Toast.LENGTH_LONG).show(); return; }
+            if (value.trim().isEmpty() || value.length() > 150) { Toast.makeText(this,"Enter the exact group title (1–150 characters).",Toast.LENGTH_LONG).show(); return; }
             synchronized (CollegeNotificationListener.class) {
                 SharedPreferences.Editor edit = prefs.edit().putString("group", value).putBoolean("enabled", true);
-                if (!value.equals(prefs.getString("group", ""))) edit.remove("inbox");
+                if (!value.equals(prefs.getString("group", ""))) {edit.remove("inbox");CloudSync.disconnect(this);}
                 edit.commit();
             }
             Toast.makeText(this,"Group saved. Grant notification access in Android Settings to receive new notices.",Toast.LENGTH_LONG).show(); refresh();
         });
         button("Notification access settings / revoke access", () -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         button("Disconnect and delete local notices", () -> {
+            CloudSync.disconnect(this);
             synchronized (CollegeNotificationListener.class) { prefs.edit().putBoolean("enabled",false).remove("inbox").remove("group").commit(); }
             group.setText(""); refresh();
         });
         button("Refresh local notices", this::refresh);
+        text("Optional private cloud sync",22);
+        text("Secure device setup is required. Enable sends captured notice text, group name and received times to your private NAV account. Android controls background timing. Suggestions still need review; no tasks or WhatsApp messages are changed. Disabling stops future uploads; already synced notices remain in NAV until you delete them.",16);
+        cloudStatus=text("",16);
+        button("Enable captured-notice cloud sync",()->new android.app.AlertDialog.Builder(this).setTitle("Enable notice uploads?").setMessage("Send recent captured notices from the saved group to your private NAV account in the background? This includes notice text, group name and received times. Your local inbox remains available.").setNegativeButton("Cancel",null).setPositiveButton("Enable",(dialog,which)->{if(!CloudSync.enable(this))Toast.makeText(this,"Secure setup, matching group and notification access are required.",Toast.LENGTH_LONG).show();refreshCloud();}).show());
+        button("Sync captured notices now",()->{CloudSync.enqueue(this);refreshCloud();});
+        button("Disable cloud sync",()->{CloudSync.disable(this);refreshCloud();});
+        button("Remove cloud credentials from this phone",()->{CloudSync.disconnect(this);refreshCloud();});
+        CloudSync.importPrivateSetup(this);refreshCloud();
         button("Export captured notices", () -> {
             refresh();
             try {
@@ -79,7 +89,8 @@ public final class MainActivity extends Activity {
         inbox = text("", 16); inbox.setTextIsSelectable(true);
         refresh();
     }
-    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.schedule(this);refreshReminder();} }
+    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.schedule(this);refreshReminder();}if(cloudStatus!=null){CloudSync.importPrivateSetup(this);refreshCloud();} }
+    private void refreshCloud(){if(cloudStatus!=null)cloudStatus.setText((CloudSync.prefs(this).getBoolean("enabled",false)?"Cloud sync enabled. ":"Cloud sync off. ")+CloudSync.prefs(this).getString("status","Secure device setup has not been completed."));}
     @Override public void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
         if(request!=7313||result!=RESULT_OK||data==null||data.getData()==null)return;
