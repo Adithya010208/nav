@@ -1,4 +1,11 @@
 import {Source,Suggestion,Task,uid,validDate,addDays} from './model';
+import type {Workspace} from './model';
+export function removeImportedNotice(workspace:Workspace,sourceId:string){
+ if(!workspace.sources.some(s=>s.id===sourceId))throw Error('This notice no longer exists. Reload your inbox.');
+ workspace.sources=workspace.sources.filter(s=>s.id!==sourceId);
+ workspace.suggestions=workspace.suggestions.filter(s=>s.sourceId!==sourceId);
+ for(const task of workspace.tasks)if(task.sourceId===sourceId)delete task.sourceId;
+}
 export function fingerprint(text:string){let h=2166136261;for(const c of text.trim().toLowerCase().replace(/\s+/g,' ')){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16);}
 export function suggestFromMessage(source:Source,tasks:Task[],referenceDate:string):Suggestion[]{
  if(!/submit|submission|complete|assignment|record|exam|test|assessment|lab|timetable|deadline|codetantra|seminar|placement|hackathon/i.test(source.text))return [];
