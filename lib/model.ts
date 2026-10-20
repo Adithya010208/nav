@@ -17,7 +17,13 @@ export function newTask(values:Partial<Task>):Task{return {id:uid(),title:'',cat
 export function weekNumber(start:string,date:string){return Math.max(1,Math.floor((Date.parse(date+'T12:00:00Z')-Date.parse(start+'T12:00:00Z'))/604800000)+1);}
 export function planWithinCapacity(tasks:Task[],ids:string[],start:string,capacity:number){
  const selected=tasks.filter(t=>ids.includes(t.id)&&t.status!=='done'&&!t.archived).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.priority-b.priority);
- const occupied=new Map<string,number>();tasks.filter(t=>!ids.includes(t.id)&&!t.archived&&t.status!=='done').forEach(t=>occupied.set(t.date,(occupied.get(t.date)||0)+t.minutes));
+ const selectedIds=new Set(selected.map(t=>t.id));
+ // Completed work already consumed that day's budget; it is never moved.
+ const occupied=new Map<string,number>();tasks.filter(t=>!selectedIds.has(t.id)&&!t.archived).forEach(t=>occupied.set(t.date,(occupied.get(t.date)||0)+t.minutes));
  const placements:Record<string,string>={},unplaced:string[]=[];for(const t of selected){let placed=false;for(let n=0;n<30;n++){const date=addDays(start,n);if((occupied.get(date)||0)+t.minutes<=capacity){placements[t.id]=date;occupied.set(date,(occupied.get(date)||0)+t.minutes);placed=true;break;}}if(!placed)unplaced.push(t.id);}
  return {placements,unplaced,late:selected.filter(t=>placements[t.id]&&t.due&&placements[t.id]>t.due).map(t=>t.id)};
+}
+export function rescheduleStart(selectedDate:string,today:string){
+ if(!validDate(selectedDate)||!validDate(today))throw Error('Choose a valid calendar date.');
+ return selectedDate<today?today:addDays(selectedDate,1);
 }
