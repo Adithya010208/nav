@@ -13,6 +13,7 @@ const read=(value)=>readNoticeBundle(JSON.stringify(value),'College',now);
 const bundle=read(fixture),first=mergeNoticeBundle(w,bundle,now);
 assert.equal(w.sources.length,0);assert.equal(first.added,1);assert.equal(first.workspace.sources[0].receivedAt,'2026-10-19T11:00:00.000Z');assert.equal(first.workspace.suggestions[0].due,'2026-10-20');assert.equal(first.workspace.tasks.length,0);
 const second=mergeNoticeBundle(first.workspace,bundle,now);assert.equal(second.added,0);assert.equal(second.duplicates,1);
+const repeated=mergeNoticeBundle(first.workspace,{...bundle,notices:[{...bundle.notices[0],receivedAt:now-86400000}]},now);assert.equal(repeated.added,1);assert.equal(repeated.workspace.sources.length,2);assert.equal(repeated.workspace.suggestions.at(-1).due,'2026-10-19');
 assert.throws(()=>read({...fixture,group:'Other'}),/exact approved group/);
 assert.throws(()=>read({...fixture,notices:[{...fixture.notices[0],group:'Other'}]}),/exact approved group/);
 assert.throws(()=>read({...fixture,notices:[{...fixture.notices[0],receivedAt:now+60001}]}),/seven days/);

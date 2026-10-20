@@ -20,7 +20,7 @@ export function mergeNoticeBundle(workspace:Workspace,bundle:NoticeBundle,now=Da
  const result=structuredClone(workspace);let added=0,duplicates=0;
  for(const notice of checked.notices){
   const fp=fingerprint(notice.text),normalized=notice.text.trim().toLowerCase().replace(/\s+/g,' ');
-  if(result.sources.some(s=>s.group===checked.group&&s.fingerprint===fp&&s.text.trim().toLowerCase().replace(/\s+/g,' ')===normalized)){duplicates++;continue;}
+  if(result.sources.some(s=>s.group===checked.group&&Date.parse(s.receivedAt)===notice.receivedAt&&s.fingerprint===fp&&s.text.trim().toLowerCase().replace(/\s+/g,' ')===normalized)){duplicates++;continue;}
   const source:Source={id:uid(),text:notice.text,group:checked.group,receivedAt:new Date(notice.receivedAt).toISOString(),importedAt:new Date(now).toISOString(),title:notice.text.split('\n')[0].slice(0,100),fingerprint:fp};
   result.sources.push(source);result.suggestions.push(...suggestFromMessage(source,result.tasks,dateInZone(result.profile.timezone,new Date(source.receivedAt))));added++;
  }

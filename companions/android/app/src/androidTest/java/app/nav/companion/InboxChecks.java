@@ -68,8 +68,14 @@ public final class InboxChecks extends Instrumentation {
             }finally{CloudCredentials.clear(context,fixtureScope);}
             check(CloudCredentials.read(context,fixtureScope)==null,"test credentials must be removed");
             prefs.edit().putString("inbox",new JSONArray().put(new JSONObject().put("group","NAV Fixture College").put("text","Synthetic selected notice").put("receivedAt",now)).put(new JSONObject().put("group","Other").put("text","Do not transfer").put("receivedAt",now)).put(new JSONObject().put("group","NAV Fixture College").put("text","Expired").put("receivedAt",now-8L*86400000)).toString()).commit();
-            Context isolated=new android.content.ContextWrapper(context){@Override public SharedPreferences getSharedPreferences(String name,int mode){return "college".equals(name)?prefs:super.getSharedPreferences(name,mode);}};
+            Context isolated=new android.content.ContextWrapper(context){@Override public SharedPreferences getSharedPreferences(String name,int mode){return "college".equals(name)?prefs:"cloud-sync".equals(name)?super.getSharedPreferences("nav-device-test-sync",mode):super.getSharedPreferences(name,mode);}};
             check(CloudSync.bundle(isolated,"NAV Fixture College").getJSONArray("notices").length()==1,"upload bundle must exclude other groups and expired notices");
+            try{
+                CloudSync.acknowledge(isolated,CloudSync.bundle(isolated,"NAV Fixture College"));
+                check(CloudSync.bundle(isolated,"NAV Fixture College").getJSONArray("notices").length()==0,"acknowledged notices must not be resent");
+                prefs.edit().putString("inbox",new JSONArray().put(new JSONObject().put("group","NAV Fixture College").put("text","Synthetic selected notice").put("receivedAt",now+1)).toString()).commit();
+                check(CloudSync.bundle(isolated,"NAV Fixture College").getJSONArray("notices").length()==1,"same wording at a new timestamp must remain queued");
+            }finally{isolated.getSharedPreferences("cloud-sync",0).edit().clear().commit();}
             result.putString("result","PASS: "+checks+" Android notification isolation/retention checks");finish(0,result);
         } catch(Throwable failure) { result.putString("result","FAIL: "+failure.getClass().getSimpleName()+": "+failure.getMessage());finish(1,result); }
         finally { prefs.edit().clear().commit(); }

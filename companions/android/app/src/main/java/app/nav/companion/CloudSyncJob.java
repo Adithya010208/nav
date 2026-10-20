@@ -27,14 +27,22 @@ public final class CloudSyncJob extends JobService {
             int code=connection.getResponseCode();
             if(code==200){
                 java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();try(java.io.InputStream input=connection.getInputStream()){byte[] chunk=new byte[1024];int count;while((count=input.read(chunk))!=-1){if(buffer.size()+count>4096)throw new java.io.IOException();buffer.write(chunk,0,count);}}
-                JSONObject result=new JSONObject(buffer.toString("UTF-8"));if(!result.has("added")||!result.has("duplicates"))throw new java.io.IOException();
+                JSONObject result=new JSONObject(buffer.toString("UTF-8"));if(result.getInt("added")<0||result.getInt("duplicates")<0||result.getInt("added")+result.getInt("duplicates")!=bundle.getJSONArray("notices").length())throw new java.io.IOException();
+                CloudSync.acknowledge(this,bundle);
                 status("Cloud notices synced. Review suggestions in NAV; no tasks were applied.");CloudSync.prefs(this).edit().putLong("lastSuccessAt",System.currentTimeMillis()).apply();return false;
             }
-            if(code==409||code==429||code>=500){status("Sync delayed. Local notices retained for retry.");return true;}
+            String reason="";
+            if(code==409){try{reason=new JSONObject(readBounded(connection.getErrorStream())).optString("code","");}catch(Exception invalid){/* Unknown conflicts pause rather than repeatedly sending a rejected batch. */}}
+            if(SyncPolicy.retry(code,reason)){status("Sync delayed. Local notices retained for retry.");return true;}
             pause("Cloud sync paused. Renew secure setup and check the approved group in NAV.");return false;
         }catch(Exception unavailable){if(!work.stopped)status("Offline or sync unavailable. Local notices retained for retry.");return !work.stopped;}
         finally{if(work.connection!=null)work.connection.disconnect();}
     }
     private void status(String message){CloudSync.prefs(this).edit().putString("status",message).apply();}
+    private String readBounded(java.io.InputStream stream) throws java.io.IOException {
+        if(stream==null)return "";java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();
+        try(java.io.InputStream input=stream){byte[] chunk=new byte[1024];int count;while((count=input.read(chunk))!=-1){if(buffer.size()+count>4096)throw new java.io.IOException();buffer.write(chunk,0,count);}}
+        return buffer.toString("UTF-8");
+    }
     private void pause(String message){CloudSync.disable(this);status(message);}
 }

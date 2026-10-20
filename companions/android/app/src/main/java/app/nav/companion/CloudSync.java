@@ -29,9 +29,21 @@ final class CloudSync {
         }catch(Exception ignored){disable(context);return false;}
     }
     static JSONObject bundle(Context context,String group) throws Exception {
-        JSONArray kept=new JSONArray();long now=System.currentTimeMillis();
-        synchronized(CollegeNotificationListener.class){JSONArray all=new JSONArray(context.getSharedPreferences("college",0).getString("inbox","[]"));for(int i=0;i<all.length();i++){JSONObject n=all.getJSONObject(i);if(group.equals(n.optString("group"))&&n.optLong("receivedAt")>=now-7L*86400000&&n.optLong("receivedAt")<=now+60000)kept.put(n);}}
+        JSONArray kept=new JSONArray();long now=System.currentTimeMillis();java.util.HashSet<String> sent=new java.util.HashSet<>();
+        JSONArray acknowledgements=new JSONArray(prefs(context).getString("acknowledged","[]"));for(int i=0;i<acknowledgements.length();i++){JSONObject a=acknowledgements.getJSONObject(i);if(a.optLong("at")>=now-7L*86400000)sent.add(a.optString("hash"));}
+        synchronized(CollegeNotificationListener.class){JSONArray all=new JSONArray(context.getSharedPreferences("college",0).getString("inbox","[]"));for(int i=0;i<all.length();i++){JSONObject n=all.getJSONObject(i);if(group.equals(n.optString("group"))&&n.optLong("receivedAt")>=now-7L*86400000&&n.optLong("receivedAt")<=now+60000&&!sent.contains(noticeHash(n)))kept.put(n);}}
         return new JSONObject().put("format","nav-college-notices").put("version",1).put("group",group).put("notices",kept);
+    }
+    private static String noticeHash(JSONObject notice) throws Exception {
+        String canonical=new JSONArray().put(notice.getString("group")).put(notice.getLong("receivedAt")).put(notice.getString("text")).toString();
+        byte[] bytes=java.security.MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(java.nio.charset.StandardCharsets.UTF_8));StringBuilder hash=new StringBuilder();for(byte b:bytes)hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return hash.toString();
+    }
+    static synchronized void acknowledge(Context context,JSONObject bundle) throws Exception {
+        long cutoff=System.currentTimeMillis()-7L*86400000;java.util.LinkedHashMap<String,Long> entries=new java.util.LinkedHashMap<>();
+        JSONArray previous=new JSONArray(prefs(context).getString("acknowledged","[]"));for(int i=0;i<previous.length();i++){JSONObject a=previous.getJSONObject(i);if(a.optLong("at")>=cutoff)entries.put(a.getString("hash"),a.getLong("at"));}
+        JSONArray notices=bundle.getJSONArray("notices");for(int i=0;i<notices.length();i++){JSONObject n=notices.getJSONObject(i);entries.put(noticeHash(n),n.getLong("receivedAt"));}
+        while(entries.size()>1000)entries.remove(entries.keySet().iterator().next());JSONArray saved=new JSONArray();for(java.util.Map.Entry<String,Long> entry:entries.entrySet())saved.put(new JSONObject().put("hash",entry.getKey()).put("at",entry.getValue()));
+        if(!prefs(context).edit().putString("acknowledged",saved.toString()).commit())throw new java.io.IOException();
     }
     static void importPrivateSetup(Context context){
         java.io.File file=new java.io.File(context.getFilesDir(),"nav-device-provision.json");if(!file.exists())return;

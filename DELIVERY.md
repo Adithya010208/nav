@@ -158,3 +158,11 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Builds/typecheck pass. Secure provisioning, real selected-group upload/readback, scheduled closed-app reminder delivery and final release acceptance remain pending. Full product is not complete.
 
 - Private deployment appgdep_6ad707cd1b348191a168934d45d46a3d succeeded from afb9c31b3b60f34c3bc5ab3c462336557ac5df8a. Hosted UI verified the mobile section picker, saved approved group and Connected phones controls. User is asked to create the scoped one-time phone setup themselves before private USB provisioning; no credential has been created or uploaded by the agent. Evidence: outputs/nav-phone-setup.png.
+
+## Sync rejection and provenance hardening (20 October)
+- Native retries now distinguish a transient workspace conflict from permanent/unknown rejections. Group changes, full/invalid workspaces, revoked credentials and redirects pause uploads rather than repeatedly transmitting a rejected batch; quota/network/server failures retain notices for retry.
+- Automatic transfer deduplication now includes the original message timestamp. Identical wording received on a different day is retained separately, so relative deadlines are grounded in the correct notice date; retrying the same original message remains idempotent.
+- Pure Java retry-policy checks, changed-group API checks, transfer provenance/deduplication and existing device isolation tests pass. The one-time phone setup approval/download request remains pending and has not been repeated. Full product remains incomplete until provisioning and live delivery acceptance.
+
+- Added a bounded seven-day acknowledgement queue containing only notice hashes/timestamps. After a validated complete success response, the phone stops re-sending that batch while preserving its local inbox. Same wording at a new message timestamp remains queued. Two extra isolated device checks cover acknowledgement and new-message behavior (26 total prepared).
+- The phone disconnected before the new retry/acknowledgement build could be installed and tested. Earlier 24-device-check evidence remains valid for the previously installed build; do not claim 26 passed. The one-time setup file has not yet appeared in Downloads. No repeated request or routine notification was issued.
