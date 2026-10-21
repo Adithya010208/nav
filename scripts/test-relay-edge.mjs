@@ -15,8 +15,8 @@ assert.equal((await send('upload',server)).status,401);assert.equal(calls.length
 const uploaded=await send('upload');assert.equal(uploaded.status,200);assert.deepEqual(await uploaded.json(),{added:1,duplicates:0});assert.equal(calls[0].options.body.includes(device),false);
 reply={status:'invalid'};assert.equal((await send('upload')).status,503);
 reply=[];calls=[];assert.equal((await send('pull',server,{userId:'user,(x)',group:'Group "A",(B)'})).status,200);
-const query=new URL(calls.at(-1).url).searchParams;assert.equal(query.get('limit'),'20');assert.equal(query.get('user_id'),'eq."user,(x)"');assert.equal(query.get('group_name'),'eq."Group \\"A\\",(B)"');
+const query=new URL(calls.at(-1).url).searchParams;assert.equal(query.get('limit'),'20');assert.equal(query.get('user_id'),'eq.user,(x)');assert.equal(query.get('group_name'),'eq.Group "A",(B)');
 assert.equal((await send('ack',server,{userId:'alice',group:'A',ids:[-1]})).status,400);
 calls=[];assert.equal((await send('upload',device,{text:'x'.repeat(500001)})).status,400);assert.equal(calls.length,0);
 globalThis.fetch=async()=>{throw Error('fixture private diagnostic');};const failed=await send('upload');assert.equal(failed.status,503);assert.equal((await failed.text()).includes('private diagnostic'),false);
-console.log('Relay Edge checks passed: custom credential scopes, hashed device authentication, internal-only service key, bounded uploads, validated RPC status, quoted owner/group filters, bounded pulls and redacted failures. Synthetic fixtures only.');
+console.log('Relay Edge checks passed: custom credential scopes, hashed device authentication, internal-only service key, bounded uploads, validated RPC status, URI-encoded literal equality filters, bounded pulls and redacted failures. Synthetic fixtures only.');

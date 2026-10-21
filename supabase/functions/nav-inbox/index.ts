@@ -1,5 +1,6 @@
 declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Promise<Response>):void};
-const filterValue=(value:string)=>encodeURIComponent('"'+value.replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"');
+// Simple eq filters take literal values; URI encoding keeps each value in its own parameter.
+const filterValue=(value:string)=>encodeURIComponent(value);
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const hash=async(value:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(n=>n.toString(16).padStart(2,'0')).join('');
 async function body(request:Request){const reader=request.body?.getReader();let text='',bytes=0;const decoder=new TextDecoder();if(reader)while(true){const value=await reader.read();if(value.done)break;bytes+=value.value.length;if(bytes>500000){await reader.cancel();throw Error();}text+=decoder.decode(value.value,{stream:true});}return JSON.parse(text+decoder.decode());}
