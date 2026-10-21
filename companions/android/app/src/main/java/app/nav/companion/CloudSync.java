@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import org.json.JSONArray;
 
 final class CloudSync {
-    static final String SITE="https://nav-personal-assistant.opalmug128.chatgpt.site";
+    static final String RELAY="https://hcmavpdgauulxjdiaiqg.supabase.co/functions/v1/nav-inbox";
     static android.content.SharedPreferences prefs(Context context){return context.getSharedPreferences("cloud-sync",0);}
     static boolean ready(Context context,JSONObject credential){
         if(!prefs(context).getBoolean("enabled",false)||credential==null)return false;

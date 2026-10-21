@@ -1,0 +1,31 @@
+import {build} from 'esbuild';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,readdirSync} from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),db=new DatabaseSync(':memory:');
+for(const f of readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort())db.exec(readFileSync('drizzle/'+f,'utf8'));
+let stale=false,ackFails=true;
+const prepare=sql=>({bind(...args){return {sql,args,async first(){return db.prepare(sql).get(...args)||null;},async all(){return {results:db.prepare(sql).all(...args)};},async run(){return db.prepare(sql).run(...args);}};}});
+globalThis.__relayEnv={NAV_RELAY_SERVER_KEY:'navs_'+'c'.repeat(64),DB:{prepare,async batch(statements){if(stale){db.prepare('UPDATE workspaces SET revision=revision+1 WHERE user_id=?').run('alice');stale=false;}db.exec('BEGIN');try{const results=statements.map(s=>({results:db.prepare(s.sql).all(...s.args)}));db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}}}};
+const plugin={name:'relay-bindings',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const env=globalThis.__relayEnv;'}));}};
+await build({entryPoints:['lib/relay.ts','lib/model.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.sites-runtime/tests/relay-consume',outExtension:{'.js':'.cjs'},plugins:[plugin]});
+const {consumeRelayInbox}=require('../.sites-runtime/tests/relay-consume/relay.cjs'),{emptyWorkspace}=require('../.sites-runtime/tests/relay-consume/model.cjs');
+for(const user of ['alice','bob']){const w=emptyWorkspace();w.profile.approvedGroup='College';db.prepare('INSERT INTO workspaces VALUES (?,0,?,?)').run(user,JSON.stringify(w),new Date().toISOString());}
+let notices=[{id:1,body:'Submit lab tomorrow',received_at:Date.now()-1000}];
+globalThis.fetch=async(url,options)=>{const input=JSON.parse(options.body);assert.equal(input.userId,'alice');if(url.endsWith('op=ack')){if(ackFails)throw Error('offline');notices=[];return Response.json({acknowledged:true});}return Response.json({notices});};
+const read=()=>JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('alice').payload);
+stale=true;assert.equal(await consumeRelayInbox('alice'),'retry');assert.equal(read().sources.length,0);assert.equal(db.prepare('SELECT COUNT(*) n FROM relay_receipts').get().n,0);
+assert.equal(await consumeRelayInbox('alice'),'retry');assert.equal(read().sources.length,1);assert.equal(db.prepare('SELECT COUNT(*) n FROM relay_receipts').get().n,1);
+// A lost queue acknowledgement must not resurrect a subsequently deleted source.
+const deleted=read();deleted.sources=[];deleted.suggestions=[];db.prepare('UPDATE workspaces SET payload=?,revision=revision+1 WHERE user_id=?').run(JSON.stringify(deleted),'alice');
+ackFails=false;assert.equal(await consumeRelayInbox('alice'),'current');assert.equal(read().sources.length,0);assert.equal(notices.length,0);
+assert.equal(JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('bob').payload).sources.length,0);
+notices=[{id:2,body:'Bad time',received_at:'invalid'}];assert.equal(await consumeRelayInbox('alice'),'retry');assert.equal(read().sources.length,0);
+notices=Array.from({length:20},(_,i)=>({id:100+i,body:'Synthetic batch notice '+i,received_at:Date.now()-1000}));globalThis.fetch=async(url)=>{if(url.endsWith('op=ack'))return Response.json({acknowledged:true});return Response.json({notices});};assert.equal(await consumeRelayInbox('alice'),'pending');assert.equal(read().sources.length,20);notices=[];assert.equal(await consumeRelayInbox('alice'),'current');
+const small=read(),full=structuredClone(small);full.sources=Array.from({length:1000},(_,i)=>({...small.sources[0],id:'full-fixture-'+i}));db.prepare('UPDATE workspaces SET payload=?,revision=revision+1 WHERE user_id=?').run(JSON.stringify(full),'alice');
+notices=[{id:9999,body:'A new notice for the full inbox',received_at:Date.now()-1000}];const beforeFull=db.prepare('SELECT payload,revision FROM workspaces WHERE user_id=?').get('alice');assert.equal(await consumeRelayInbox('alice'),'full');assert.deepEqual(db.prepare('SELECT payload,revision FROM workspaces WHERE user_id=?').get('alice'),beforeFull);assert.equal(db.prepare('SELECT COUNT(*) n FROM relay_receipts WHERE notice_id=?').get('9999').n,0);
+db.prepare('UPDATE workspaces SET payload=? WHERE user_id=?').run(JSON.stringify(small),'alice');
+const beforeOversize=JSON.stringify(read());
+let cancelled=false;globalThis.fetch=async()=>new Response(new ReadableStream({start(controller){controller.enqueue(new Uint8Array(1200001));},cancel(){cancelled=true;}}));assert.equal(await consumeRelayInbox('alice'),'retry');assert.equal(cancelled,true);assert.equal(JSON.stringify(read()),beforeOversize);
+db.close();console.log('Relay consumption checks passed: atomic revision conflict, durable retry receipts, no source resurrection after lost acknowledgement, account isolation and malformed response rejection. Synthetic fixtures only.');

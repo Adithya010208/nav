@@ -58,11 +58,13 @@ public final class InboxChecks extends Instrumentation {
             check(android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE)==null,"test alarm must be removed");
             String fixtureScope="nav-sync-fixture";
             try{
-                JSONObject secret=new JSONObject().put("deviceToken","navd_"+"a".repeat(64)).put("serviceToken","fixture-service-token-not-real").put("group","NAV Fixture College");
+                JSONObject secret=new JSONObject().put("deviceToken","navd_"+"a".repeat(64)).put("relayUrl",CloudSync.RELAY).put("group","NAV Fixture College");
                 CloudCredentials.save(context,secret,fixtureScope);
-                check(CloudCredentials.read(context,fixtureScope).getString("serviceToken").equals(secret.getString("serviceToken")),"Keystore credential roundtrip must work");
-                check(!context.getSharedPreferences(fixtureScope,0).getAll().toString().contains(secret.getString("serviceToken")),"stored credential must not be plaintext");
+                check(CloudCredentials.read(context,fixtureScope).getString("deviceToken").equals(secret.getString("deviceToken")),"Keystore credential roundtrip must work");
+                check(!context.getSharedPreferences(fixtureScope,0).getAll().toString().contains(secret.getString("deviceToken")),"stored credential must not be plaintext");
                 boolean invalidCredential=false;try{CloudCredentials.validate(new JSONObject(secret.toString()).put("deviceToken","bad"));}catch(Exception rejected){invalidCredential=true;}check(invalidCredential,"invalid capability must fail");
+                boolean badRelay=false;try{CloudCredentials.validate(new JSONObject(secret.toString()).put("relayUrl","https://other.invalid"));}catch(Exception rejected){badRelay=true;}check(badRelay,"unapproved upload destination must fail");
+                boolean broadCredential=false;try{CloudCredentials.validate(new JSONObject(secret.toString()).put("serviceToken","forbidden-fixture"));}catch(Exception rejected){broadCredential=true;}check(broadCredential,"Site service credentials must be rejected");
                 context.getSharedPreferences(fixtureScope,0).edit().putString("ciphertext","AAAA").commit();
                 boolean tampered=false;try{CloudCredentials.read(context,fixtureScope);}catch(Exception rejected){tampered=true;}check(tampered,"tampered encrypted data must fail closed");
             }finally{CloudCredentials.clear(context,fixtureScope);}

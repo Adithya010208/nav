@@ -7,5 +7,6 @@ declare namespace Cloudflare {
     GEMINI_API_KEY?: string;
     GEMINI_MODEL?: string;
     AI_PROVIDER?: string;
+    NAV_RELAY_SERVER_KEY?: string;
   }
 }

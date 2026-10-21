@@ -15,7 +15,7 @@ import org.json.JSONObject;
 final class CloudCredentials {
     static final String SCOPE="nav-cloud-device";
     static void validate(JSONObject value) throws Exception {
-        if(!value.getString("deviceToken").matches("navd_[a-f0-9]{64}")||!value.getString("serviceToken").matches("[!-~]{20,8192}")||value.getString("group").trim().isEmpty()||value.getString("group").length()>150)throw new IllegalArgumentException();
+        if(!value.getString("deviceToken").matches("navd_[a-f0-9]{64}")||(value.has("serviceToken")||!CloudSync.RELAY.equals(value.getString("relayUrl")))||value.getString("group").trim().isEmpty()||value.getString("group").length()>150)throw new IllegalArgumentException();
     }
     private static SecretKey key(String scope) throws Exception {
         KeyStore store=KeyStore.getInstance("AndroidKeyStore");store.load(null);

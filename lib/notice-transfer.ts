@@ -2,6 +2,8 @@ import {z} from 'zod';
 import {Source,Workspace,uid,dateInZone} from './model';
 import {fingerprint,suggestFromMessage} from './college';
 
+export class NoticeInboxFullError extends Error {}
+
 export const noticeBundle=z.object({format:z.literal('nav-college-notices'),version:z.literal(1),group:z.string().min(1).max(150),notices:z.array(z.object({group:z.string().min(1).max(150),text:z.string().trim().min(1).max(12000),receivedAt:z.number().int().nonnegative()})).min(1).max(100)});
 export type NoticeBundle=z.infer<typeof noticeBundle>;
 export function readNoticeBundle(text:string,approvedGroup:string,now=Date.now()):NoticeBundle {
@@ -24,6 +26,6 @@ export function mergeNoticeBundle(workspace:Workspace,bundle:NoticeBundle,now=Da
   const source:Source={id:uid(),text:notice.text,group:checked.group,receivedAt:new Date(notice.receivedAt).toISOString(),importedAt:new Date(now).toISOString(),title:notice.text.split('\n')[0].slice(0,100),fingerprint:fp};
   result.sources.push(source);result.suggestions.push(...suggestFromMessage(source,result.tasks,dateInZone(result.profile.timezone,new Date(source.receivedAt))));added++;
  }
- if(result.sources.length>1000||result.suggestions.length>1000)throw Error('Your inbox is full. Export a workspace backup before removing old notices.');
+ if(result.sources.length>1000||result.suggestions.length>1000)throw new NoticeInboxFullError('Your inbox is full. Export a workspace backup before removing old notices.');
  return {workspace:result,added,duplicates};
 }
