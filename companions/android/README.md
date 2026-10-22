@@ -1,7 +1,7 @@
 # NAV Android companion — source preview
 
 ## Current status: 0.7
-0.7 is installed on the authorized Android 16 phone; 30 isolated device checks, 14 pure schedule checks, build and lint pass. Approved-group cloud upload and manual notification sound were verified earlier. Precise daily scheduled popup/sound acceptance remains pending; do not equate fixture success with user-visible delivery.
+0.7 is installed on the authorized Android 16 phone; 30 isolated device checks, 14 pure schedule checks, build and lint pass. Approved-group cloud upload was verified earlier. The real 23:42 daily scheduled reminder on 22 October fired after pressing Home; the user confirmed popup with sound, corroborated by receiver/submission timestamps. The normal 18:30 schedule is restored and verified with precise timing enabled. Fixture success alone is not user-visible delivery evidence.
 
 The reminder picker now shows AM/PM, with both clock formats and the requested date/time zone in the status. Open **Allow precise reminder timing** to grant Android's optional **Alarms & reminders** special access. NAV checks that access before `setExactAndAllowWhileIdle`, falling back to an explicitly labelled approximate alarm if unavailable or revoked. NAV does not grant permissions or override sound/DND preferences. The receiver rearms after permission approval. Force-stop still prevents delivery until reopening.
 

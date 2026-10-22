@@ -11,7 +11,7 @@ NAV combines your learning roadmap, daily plan, college notices, deadlines, focu
 - Practice records, 3/14-day revision dates and measured focus sessions.
 - JSON backups, calendar snapshots, open-app device notifications and installable web-app metadata.
 - Server-side AI tutoring and planning with consent, bounded context, validation and a 20-request daily limit. The private hosted Gemini connection has been verified.
-- Windows tray companion with a revocable reminder-only connection; scheduled background test popup/sound confirmed. Android daily reminders have been implemented; final precise scheduled delivery acceptance is pending.
+- Windows tray companion with a revocable reminder-only connection and Android daily study reminders. Real scheduled background popup/sound tests passed on both devices on 22 October; Android precise timing requires explicit Alarms & reminders access.
 
 ## Local development
 Run `node scripts/run-framework.mjs dev`. The portable starter simulates ChatGPT sign-in only in local development. Configure database bindings in `.openai/hosting.json`; generate schema migrations with `node node_modules/drizzle-kit/bin.cjs generate`. Follow the Sites deployment workflow and apply pending migrations to the local preview database before testing.
