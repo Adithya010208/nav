@@ -10,7 +10,7 @@ function createPoller({enabled,load,deliver,timeoutMs=15000}) {
    deadline=setTimeout(()=>controller.abort(),timeoutMs);
    const data=await Promise.race([Promise.resolve().then(()=>load(controller.signal)),aborted]);
    if(controller.signal.aborted||active!==controller||!enabled())return false;
-   deliver(data);return true;
+   await deliver(data,controller.signal);return true;
   }catch{return false;}
   finally{clearTimeout(deadline);if(active===controller)active=null;}
  }

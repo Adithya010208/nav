@@ -1,5 +1,17 @@
 # NAV for Windows
 
+## Version 0.5: browser sign-in and scoped reminders
+
+The local companion opens the NAV dashboard in the system browser. It no longer asks users to sign in inside Electron. The existing embedded OpenAI login stalled before its controls became enabled; version 0.5 removes that dependency rather than altering provider verification.
+
+In the signed-in website, open Settings → Windows companion, enter a computer label, approve reminder-only access and create a setup. In the companion, select Connect Windows and choose the downloaded `nav-windows-setup.json`. It is verified against the reminder service before being encrypted with Electron safeStorage (Windows DPAPI). Delete the download afterward. The file is a private 30-day credential; never paste it in chat or include it in an APK/source archive.
+
+The `navw_` credential can read only the connected owner's minimized reminder snapshot: task IDs/titles/dates/status, study time and time zone. It cannot read documents, notice text, AI conversations or profile identity, edit tasks, upload WhatsApp notices, or enter the private Site. The hosted browser session remains in the browser. Revoking a Windows connection in website Settings immediately rejects later reads; removing it locally stops this computer's access. Existing account storage is preserved.
+
+The app fetches the latest reminder snapshot every minute while running. Website saves update it, and opening the website retries a failed update. A failed refresh must not mark a reminder delivered. Local IPC is limited to the fixed bundled page and exposes no credential. Remote navigation, webviews and renderer network access are disabled. Local builds are unsigned; real timed notification acceptance is still required separately.
+
+The notes below describe earlier embedded-browser previews.
+
 Native Electron companion for the existing NAV account and cloud workspace. No two-friend chat functionality is included.
 
 - Tray access, Ctrl+Space invocation, mini/full window and optional start with Windows.
@@ -12,3 +24,5 @@ The packaged build is unsigned. Native startup and reminder-logic checks are sep
 Development: `npm install`, `npm start`. Unit checks: `npm test`. Packaging: `npm run package` produces an unpacked Windows application under the task outputs directory. Run NAV.exe from that complete folder; do not move the executable alone.
 
 Preview 0.3 hardens background polls: one in flight, a 15-second deadline, late-response rejection on navigation/sign-out/disable, and immediate checks after resume/unlock. Failed fetches do not fabricate or mark delivered reminders. Poll fixtures cover overlap, cancellation, disabled state, timeout recovery and errors. Test notification acceptance does not prove a scheduled background deadline was delivered.
+
+Version 0.4 adds a tray reminder status, a manual Check reminders now action and a private diagnostic file containing generic state/timestamps only. Failed notifications are retained for retry; the app marks a reminder sent only after Electron reports it shown. Delivery confirmation does not override Windows sound/Do Not Disturb settings. Scheduled acceptance on the actual account remains required.
