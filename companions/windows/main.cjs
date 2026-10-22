@@ -2,6 +2,8 @@ const {app,BrowserWindow,Tray,Menu,Notification,globalShortcut,shell,nativeImage
 const fs=require('node:fs'),path=require('node:path');
 const {reminderEvents}=require('./reminders.cjs');
 const {createPoller}=require('./poller.cjs');
+const {notificationPolicy}=require('./notification-policy.cjs');
+let notificationPermission=null;
 const {APP_ID,CLSID,registerShortcut}=require('./registration.cjs');
 const {parseSetup,readReminders}=require('./connection.cjs');
 const {fileURLToPath}=require('node:url');
@@ -32,8 +34,11 @@ function createWindow(){win=new BrowserWindow({title:'NAV · Personal Assistant'
  if(!smoke)win.loadFile(path.join(__dirname,'desktop.html'));
  return win;
 }
-function recordStatus(state,details={}){reminderStatus={state,...details,at:new Date().toISOString()};try{fs.mkdirSync(app.getPath('userData'),{recursive:true});fs.writeFileSync(path.join(app.getPath('userData'),'nav-reminder-status.json'),JSON.stringify(reminderStatus));}catch{}buildMenu();}
-function notification(event,signal){
+function recordStatus(state,details={}){reminderStatus={state,...details,notificationPolicy:notificationPermission?.reason||null,at:new Date().toISOString()};try{fs.mkdirSync(app.getPath('userData'),{recursive:true});fs.writeFileSync(path.join(app.getPath('userData'),'nav-reminder-status.json'),JSON.stringify(reminderStatus));}catch{}buildMenu();}
+async function notification(event,signal){
+ notificationPermission=await notificationPolicy();
+ if(!notificationPermission.enabled){recordStatus('notifications-disabled');return false;}
+ if(signal?.aborted)return false;
  if(!Notification.isSupported()){recordStatus('notifications-unavailable');return Promise.resolve(false);}
  return new Promise(resolve=>{let settled=false;const n=new Notification({title:event.title,body:event.body,icon:icon(),silent:false});liveNotifications.add(n);
  const finish=ok=>{if(settled)return;settled=true;clearTimeout(deadline);if(!ok)liveNotifications.delete(n);recordStatus(ok?'notification-accepted':'notification-not-accepted');resolve(ok);};

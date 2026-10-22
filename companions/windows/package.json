@@ -1,7 +1,7 @@
 {
   "name": "nav-desktop",
   "productName": "NAV",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "NAV personal study assistant for Windows",
   "main": "main.cjs",
   "private": true,
