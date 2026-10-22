@@ -51,6 +51,9 @@ public final class InboxChecks extends Instrumentation {
             check(StudySchedule.nextAt(18,30,java.time.Instant.parse("2026-10-19T13:00:00Z").toEpochMilli(),"Asia/Kolkata")==java.time.Instant.parse("2026-10-20T13:00:00Z").toEpochMilli(),"fired time must roll to tomorrow");
             check(StudySchedule.nextAt(2,30,java.time.Instant.parse("2026-03-08T06:00:00Z").toEpochMilli(),"America/New_York")==java.time.Instant.parse("2026-03-08T07:30:00Z").toEpochMilli(),"DST gap must resolve safely");
             boolean invalidTime=false;try{StudySchedule.nextAt(24,0,now,"UTC");}catch(java.time.DateTimeException expected){invalidTime=true;}check(invalidTime,"invalid time must fail");
+            long delayed=java.time.Instant.parse("2026-10-19T13:00:00Z").toEpochMilli();
+            check(StudySchedule.resumeAt(18,30,delayed+300000,"Asia/Kolkata",delayed,"Asia/Kolkata","")==delayed,"resume must preserve today's delayed alarm");
+            check(StudySchedule.resumeAt(18,30,delayed+300000,"Asia/Kolkata",delayed,"Asia/Kolkata","2026-10-19")==delayed+86400000L,"delivered alarm must advance to tomorrow");
             android.content.Intent testIntent=new android.content.Intent(context,StudyAlarmReceiver.class).setAction("app.nav.companion.TEST_NOOP");
             android.app.PendingIntent testAlarm=android.app.PendingIntent.getBroadcast(context,7399,testIntent,android.app.PendingIntent.FLAG_UPDATE_CURRENT|android.app.PendingIntent.FLAG_IMMUTABLE);
             android.app.AlarmManager manager=context.getSystemService(android.app.AlarmManager.class);

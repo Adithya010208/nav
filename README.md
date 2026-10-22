@@ -6,11 +6,12 @@ NAV combines your learning roadmap, daily plan, college notices, deadlines, focu
 - ChatGPT identity and private per-user cloud workspace with revision conflict protection.
 - Editable tasks, evidence notes, completion/partial status, archive/restore and capacity-aware rescheduling.
 - Milestones and daily plans derived from the supplied 18-month developer roadmap.
-- Manual college imports, source preservation, review queue and deadline uncertainty.
+- Reviewed college imports and opt-in Android capture/cloud sync for one exact approved WhatsApp group, with source preservation and deadline uncertainty.
 - Private file storage; browser PDF/text extraction (text PDFs, up to 80 pages / 8 MB).
 - Practice records, 3/14-day revision dates and measured focus sessions.
 - JSON backups, calendar snapshots, open-app device notifications and installable web-app metadata.
-- Server-side AI endpoint with consent, bounded context, validation and a 20-request daily limit. Live AI requires a replacement private API credential and has not been verified.
+- Server-side AI tutoring and planning with consent, bounded context, validation and a 20-request daily limit. The private hosted Gemini connection has been verified.
+- Windows tray companion with a revocable reminder-only connection; scheduled background test popup/sound confirmed. Android daily reminders have been implemented; final precise scheduled delivery acceptance is pending.
 
 ## Local development
 Run `node scripts/run-framework.mjs dev`. The portable starter simulates ChatGPT sign-in only in local development. Configure database bindings in `.openai/hosting.json`; generate schema migrations with `node node_modules/drizzle-kit/bin.cjs generate`. Follow the Sites deployment workflow and apply pending migrations to the local preview database before testing.
@@ -18,9 +19,9 @@ Run `node scripts/run-framework.mjs dev`. The portable starter simulates ChatGPT
 Checks: `node node_modules/typescript/bin/tsc --noEmit`, `node scripts/test-core.mjs`, `node scripts/test-isolation.mjs`. `node scripts/test-api.mjs` exercises a running local preview. Build with `node scripts/run-framework.mjs build` when the host's npm shim is unavailable.
 
 ## Secrets and limitations
-Keep credentials out of code, browser storage and commits. Hosted AI uses server-only `OPENAI_API_KEY` and optional `OPENAI_MODEL` (default `gpt-4.1-mini`). The key exposed in chat must be revoked and will not be used. Local env/vars files are ignored.
+Keep credentials out of code, browser storage and commits. Hosted AI uses the server-only provider configuration described below. Local env/vars files are ignored. Phone and Windows connections use separate, limited, revocable device credentials.
 
-Live WhatsApp ingestion, scanned-document OCR, closed-app push delivery, and native Windows/Android companions remain unfinished. Calendar export is an importable snapshot, not automatic synchronization. Device notifications require user permission and an open app. See DELIVERY.md for phase status and verification limits.
+Scanned-document OCR is not included. Calendar export is an importable snapshot, not automatic synchronization. Browser reminders require an open page; Windows reminders require the tray companion running and network access. Android's local daily reminder is independent of website task deadlines and requires notification permission; precise timing additionally requires Android's Alarms & reminders permission. Native builds are personal local packages, not app-store releases. See the latest DELIVERY.md checkpoints for actual device acceptance and remaining work.
 
 Internal legacy browser-storage keys remain compatible with the earlier prototype. The application is NAV throughout its user-facing UI.
 

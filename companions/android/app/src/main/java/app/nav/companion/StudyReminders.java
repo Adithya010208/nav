@@ -18,6 +18,9 @@ final class StudyReminders {
     static final int REQUEST = 7311;
     private StudyReminders() {}
     static SharedPreferences prefs(Context context) { return context.getSharedPreferences("study-reminders",Context.MODE_PRIVATE); }
+    static boolean preciseAllowed(Context context) {
+        return Build.VERSION.SDK_INT<31 || context.getSystemService(AlarmManager.class).canScheduleExactAlarms();
+    }
     static void channel(Context context) {
         context.getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel(CHANNEL,"NAV study reminders",NotificationManager.IMPORTANCE_DEFAULT));
     }
@@ -36,18 +39,35 @@ final class StudyReminders {
         prefs(context).edit().putLong("nextAt",0).apply();
     }
     static boolean schedule(Context context) {
+        return schedule(context,false);
+    }
+    static boolean ensureScheduled(Context context) {
+        return schedule(context,true);
+    }
+    private static boolean schedule(Context context,boolean preservePending) {
         SharedPreferences settings=prefs(context);
         if(!settings.getBoolean("enabled",false)||!canNotify(context)){cancel(context);return false;}
         try{
-            long next=StudySchedule.nextAt(settings.getInt("hour",18),settings.getInt("minute",30),System.currentTimeMillis(),java.util.TimeZone.getDefault().getID());
-            context.getSystemService(AlarmManager.class).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,pending(context,PendingIntent.FLAG_UPDATE_CURRENT));
-            settings.edit().putLong("nextAt",next).apply();return true;
+            String zone=java.util.TimeZone.getDefault().getID();long now=System.currentTimeMillis();
+            long next=preservePending?StudySchedule.resumeAt(settings.getInt("hour",18),settings.getInt("minute",30),now,zone,settings.getLong("nextAt",0),settings.getString("zone",""),settings.getString("lastDay","")):StudySchedule.nextAt(settings.getInt("hour",18),settings.getInt("minute",30),now,zone);
+            AlarmManager alarms=context.getSystemService(AlarmManager.class);
+            PendingIntent delivery=pending(context,PendingIntent.FLAG_UPDATE_CURRENT);
+            boolean precise=preciseAllowed(context);
+            if(precise){
+                try{alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,delivery);}
+                catch(SecurityException revoked){precise=false;alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,delivery);}
+            }else alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,delivery);
+            settings.edit().putLong("nextAt",next).putString("zone",zone).putBoolean("precise",precise).apply();return true;
         }catch(RuntimeException unavailable){cancel(context);return false;}
     }
     static boolean enable(Context context,int hour,int minute) {
         channel(context);if(!canNotify(context))return false;
         StudySchedule.nextAt(hour,minute,System.currentTimeMillis(),java.util.TimeZone.getDefault().getID());
-        prefs(context).edit().putInt("hour",hour).putInt("minute",minute).putBoolean("enabled",true).apply();
+        SharedPreferences settings=prefs(context);
+        SharedPreferences.Editor edit=settings.edit().putInt("hour",hour).putInt("minute",minute).putBoolean("enabled",true);
+        // A deliberately changed study time is a new reminder, even after today's earlier one.
+        if(hour!=settings.getInt("hour",18)||minute!=settings.getInt("minute",30))edit.remove("lastDay");
+        edit.apply();
         return schedule(context);
     }
     static void disable(Context context){prefs(context).edit().putBoolean("enabled",false).apply();cancel(context);context.getSystemService(NotificationManager.class).cancel(7311);}

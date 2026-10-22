@@ -1,5 +1,14 @@
 # NAV Android companion — source preview
 
+## Current status: 0.7
+0.7 is installed on the authorized Android 16 phone; 30 isolated device checks, 14 pure schedule checks, build and lint pass. Approved-group cloud upload and manual notification sound were verified earlier. Precise daily scheduled popup/sound acceptance remains pending; do not equate fixture success with user-visible delivery.
+
+The reminder picker now shows AM/PM, with both clock formats and the requested date/time zone in the status. Open **Allow precise reminder timing** to grant Android's optional **Alarms & reminders** special access. NAV checks that access before `setExactAndAllowWhileIdle`, falling back to an explicitly labelled approximate alarm if unavailable or revoked. NAV does not grant permissions or override sound/DND preferences. The receiver rearms after permission approval. Force-stop still prevents delivery until reopening.
+
+Changing the chosen study time permits a new reminder that day. Reopening preserves today's delayed undelivered alarm instead of silently moving it to tomorrow. Content-free local diagnostics distinguish alarm receipt and notification submission; submission does not prove visible display or sound. The native daily schedule remains independent of website task deadlines.
+
+The sections below describe earlier versions chronologically; their old pending statuses do not replace the current status above or the latest root DELIVERY.md checkpoint.
+
 This is a preview, not a finished device release. `assembleDebug`, `lintDebug` and debug APK signature verification pass. A preview APK is available in the task outputs as `nav-android-preview.apk`; actual device acceptance checks are outstanding. It opens the private NAV site in the system browser and offers an optional local notice inbox. It contains no WhatsApp outgoing action, reply, cancellation, accessibility service, network ingestion, or account credential handling.
 
 Preview 0.3 adds an opt-in daily study reminder. Choose a phone-local time, press Enable daily study reminder, then grant Android's notification permission if prompted. Test NAV notification sends a generic local notification. Disable cancels NAV's own alarm and daily notification. Nothing enables itself during install. Reminders use Android inexact alarms, can be delayed by battery restrictions, and stop after force-stop until the app is opened again. Boot, clock/time-zone changes and app upgrades reschedule an enabled reminder. The local time is independent of the website's plan and does not automatically mirror task deadlines. This does not replace cloud deadline push delivery.
