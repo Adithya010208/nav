@@ -1,6 +1,6 @@
 # NAV for Windows
 
-## Version 0.5: browser sign-in and scoped reminders
+## Version 0.5.4: browser sign-in and scoped reminders
 
 The local companion opens the NAV dashboard in the system browser. It no longer asks users to sign in inside Electron. The existing embedded OpenAI login stalled before its controls became enabled; version 0.5 removes that dependency rather than altering provider verification.
 
@@ -9,6 +9,10 @@ In the signed-in website, open Settings → Windows companion, enter a computer 
 The `navw_` credential can read only the connected owner's minimized reminder snapshot: task IDs/titles/dates/status, study time and time zone. It cannot read documents, notice text, AI conversations or profile identity, edit tasks, upload WhatsApp notices, or enter the private Site. The hosted browser session remains in the browser. Revoking a Windows connection in website Settings immediately rejects later reads; removing it locally stops this computer's access. Existing account storage is preserved.
 
 The app fetches the latest reminder snapshot every minute while running. Website saves update it, and opening the website retries a failed update. A failed refresh must not mark a reminder delivered. Local IPC is limited to the fixed bundled page and exposes no credential. Remote navigation, webviews and renderer network access are disabled. Local builds are unsigned; real timed notification acceptance is still required separately.
+
+Windows notification checks now distinguish disabled notifications and a busy/quiet system from an accepted toast. The app reads only NAV/global notification switches and the documented Windows notification-availability enum. It never changes OS preferences or plays a separate sound to bypass suppression. A deferred reminder retries on normal account polls while its time window is current; quitting NAV stops polling.
+
+For verification without changing your cloud plan, select **Schedule test in 1 minute**, then close the dashboard to the tray. The next eligible account poll sends the local test (normally within one to two minutes); Windows suppression delays it for up to ten minutes. The test is local, lasts only for this running session and does not change ordinary task-reminder receipts. Successful scheduling logic alone does not prove display or sound. On 22 October, the user confirmed this updated background test appeared with sound; the diagnostic also recorded accepted with Windows availability allowed.
 
 The notes below describe earlier embedded-browser previews.
 

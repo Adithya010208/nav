@@ -2,6 +2,8 @@ const {app,BrowserWindow,Tray,Menu,Notification,globalShortcut,shell,nativeImage
 const fs=require('node:fs'),path=require('node:path');
 const {reminderEvents}=require('./reminders.cjs');
 const {createPoller}=require('./poller.cjs');
+const {createVerification}=require('./verification.cjs');
+const verification=createVerification();
 const {notificationPolicy}=require('./notification-policy.cjs');
 let notificationPermission=null;
 const {APP_ID,CLSID,registerShortcut}=require('./registration.cjs');
@@ -34,10 +36,10 @@ function createWindow(){win=new BrowserWindow({title:'NAV · Personal Assistant'
  if(!smoke)win.loadFile(path.join(__dirname,'desktop.html'));
  return win;
 }
-function recordStatus(state,details={}){reminderStatus={state,...details,notificationPolicy:notificationPermission?.reason||null,at:new Date().toISOString()};try{fs.mkdirSync(app.getPath('userData'),{recursive:true});fs.writeFileSync(path.join(app.getPath('userData'),'nav-reminder-status.json'),JSON.stringify(reminderStatus));}catch{}buildMenu();}
+function recordStatus(state,details={}){reminderStatus={state,...details,verificationAt:verification.dueAt(),notificationPolicy:notificationPermission?.reason||null,at:new Date().toISOString()};try{fs.mkdirSync(app.getPath('userData'),{recursive:true});fs.writeFileSync(path.join(app.getPath('userData'),'nav-reminder-status.json'),JSON.stringify(reminderStatus));}catch{}buildMenu();}
 async function notification(event,signal){
  notificationPermission=await notificationPolicy();
- if(!notificationPermission.enabled){recordStatus('notifications-disabled');return false;}
+ if(!notificationPermission.enabled){recordStatus(notificationPermission.deferred?'notifications-deferred':'notifications-disabled');return false;}
  if(signal?.aborted)return false;
  if(!Notification.isSupported()){recordStatus('notifications-unavailable');return Promise.resolve(false);}
  return new Promise(resolve=>{let settled=false;const n=new Notification({title:event.title,body:event.body,icon:icon(),silent:false});liveNotifications.add(n);
@@ -48,7 +50,7 @@ async function notification(event,signal){
 const poller=createPoller({
  enabled:()=>prefs.reminders&&!quitting&&win&&!win.isDestroyed(),
  load:async signal=>{if(!connection){recordStatus('connection-required');throw Error('Connection required');}try{const j=await readReminders(connection,signal);recordStatus('account-connected');return j;}catch(e){recordStatus(e.status===401?'connection-expired':'connection-delayed');throw e;}},
- deliver:async (j,signal)=>{const scope=j.scope;for(const event of reminderEvents(j.data)){if(signal.aborted||!prefs.reminders||quitting)return;const key=scope+':'+event.id;if(prefs.seen[key])continue;if(await notification(event,signal)&&!signal.aborted&&prefs.reminders&&!quitting){prefs.seen[key]=new Date().toISOString();save();}}const cutoff=Date.now()-30*86400000;for(const [key,time]of Object.entries(prefs.seen))if(Date.parse(time)<cutoff)delete prefs.seen[key];save();}
+ deliver:async (j,signal)=>{const scope=j.scope;for(const event of [...[verification.event()].filter(Boolean),...reminderEvents(j.data)]){if(signal.aborted||!prefs.reminders||quitting)return;const key=scope+':'+event.id;if(event.kind!=='verification'&&prefs.seen[key])continue;if(await notification(event,signal)&&!signal.aborted&&prefs.reminders&&!quitting){if(event.kind==='verification'){verification.accepted(event.id);recordStatus('notification-accepted');}else{prefs.seen[key]=new Date().toISOString();save();}}}const cutoff=Date.now()-30*86400000;for(const [key,time]of Object.entries(prefs.seen))if(Date.parse(time)<cutoff)delete prefs.seen[key];save();}
 });
 async function check(){const start=reminderStatus.at;const ok=await poller.run();if(!ok&&prefs.reminders&&!quitting&&reminderStatus.at===start)recordStatus('connection-delayed');return ok;}
 function buildMenu(){const menu=[{label:'Open NAV',click:show},{label:'Reminder status: '+reminderStatus.state,enabled:false},{label:'Check reminders now',click:check},{label:'Mini assistant window',type:'checkbox',checked:mini,click:item=>{mini=item.checked;show();win.setSize(mini?440:800,mini?700:840);buildMenu();}},{label:'Background reminders',type:'checkbox',checked:prefs.reminders,click:item=>{prefs.reminders=item.checked;if(!prefs.reminders)poller.cancel();save();buildMenu();if(prefs.reminders)check();}},{label:'Start with Windows',type:'checkbox',checked:app.getLoginItemSettings().openAtLogin,click:item=>app.setLoginItemSettings({openAtLogin:item.checked})},{label:'Test notification',click:()=>notification({title:'NAV · Notifications work',body:'Your personal assistant can alert you while it stays in the tray.'})},{type:'separator'},{label:'Open dashboard in browser',click:()=>shell.openExternal(SITE)},{label:'Connect Windows',click:()=>{show();connect();}},{label:'Disconnect this computer',click:()=>{poller.cancel();connection=null;try{fs.unlinkSync(connectionFile());}catch{}recordStatus('connection-required');}},{label:'Quit NAV',click:()=>{quitting=true;app.quit();}}];tray?.setContextMenu(Menu.buildFromTemplate(menu));}
@@ -58,7 +60,7 @@ async function connect(){
  const selected=await dialog.showOpenDialog(win,{title:'Select private NAV Windows setup',properties:['openFile'],filters:[{name:'NAV setup JSON',extensions:['json']}]});if(selected.canceled||selected.filePaths.length!==1)return {message:'Connection unchanged.'};
  try{const file=selected.filePaths[0];if(fs.statSync(file).size>4096)throw Error();const value=parseSetup(fs.readFileSync(file,'utf8'));await readReminders(value,AbortSignal.timeout(12000));const encrypted=safeStorage.encryptString(JSON.stringify(value));fs.mkdirSync(app.getPath('userData'),{recursive:true});fs.writeFileSync(connectionFile()+'.tmp',encrypted,{mode:0o600});fs.renameSync(connectionFile()+'.tmp',connectionFile());poller.cancel();connection=value;await check();return {message:'Windows connected. Delete the downloaded setup file after closing this dialog. Your dashboard opens in your normal browser.'};}catch{return {message:'Could not connect. Select a fresh NAV Windows setup file from browser Settings.'};}
 }
-for(const [channel,action] of Object.entries({open:()=>shell.openExternal(SITE),connect,check:async()=>{await check();},test:async()=>{await notification({title:'NAV · Notifications work',body:'Your Windows companion can show native reminders.'});},status:()=>reminderStatus}))ipcMain.handle('nav:'+channel,(event)=>{if(event.sender!==win?.webContents||!localURL(event.senderFrame?.url||''))throw Error('Local companion only.');return action();});
+for(const [channel,action] of Object.entries({schedule:()=>{if(!connection)return {message:'Connect Windows first.'};if(!prefs.reminders)return {message:'Enable Background reminders from the tray first.'};const due=verification.schedule();recordStatus('verification-scheduled');return {message:'Scheduled test starts at '+new Date(due).toLocaleTimeString()+'. Close this window to the tray. Windows suppression delays the test until interruptions are allowed (up to ten minutes).'};},open:()=>shell.openExternal(SITE),connect,check:async()=>{await check();},test:async()=>{await notification({title:'NAV · Notifications work',body:'Your Windows companion can show native reminders.'});},status:()=>reminderStatus}))ipcMain.handle('nav:'+channel,(event)=>{if(event.sender!==win?.webContents||!localURL(event.senderFrame?.url||''))throw Error('Local companion only.');return action();});
 app.whenReady().then(async()=>{
  if(!smoke&&app.isPackaged)registerShortcut(shell,fs,app.getPath('appData'),app.getPath('exe'));
  try{const input=JSON.parse(fs.readFileSync(prefsFile(),'utf8'));prefs={reminders:typeof input.reminders==='boolean'?input.reminders:true,seen:input.seen&&typeof input.seen==='object'?input.seen:{}};}catch{}
