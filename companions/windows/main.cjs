@@ -2,6 +2,7 @@ const {app,BrowserWindow,Tray,Menu,Notification,globalShortcut,shell,nativeImage
 const fs=require('node:fs'),path=require('node:path');
 const {reminderEvents}=require('./reminders.cjs');
 const {createPoller}=require('./poller.cjs');
+const {APP_ID,CLSID,registerShortcut}=require('./registration.cjs');
 const {parseSetup,readReminders}=require('./connection.cjs');
 const {fileURLToPath}=require('node:url');
 let connection=null;
@@ -12,7 +13,8 @@ const smoke=process.argv.includes('--nav-smoke-test');
 const userDataArg=process.argv.find(x=>x.startsWith('--nav-test-data='));
 if(smoke&&userDataArg)app.setPath('userData',path.resolve(userDataArg.split('=').slice(1).join('=')));
 if(!app.requestSingleInstanceLock())app.quit();
-app.setAppUserModelId('com.nav.personalassistant');
+app.setAppUserModelId(APP_ID);
+app.setToastActivatorCLSID(CLSID);
 const localURL=url=>{try{return new URL(url).protocol==='file:'&&fileURLToPath(url)===path.join(__dirname,'desktop.html')}catch{return false}};
 const ownURL=url=>{try{return new URL(url).origin===SITE}catch{return false}};
 const navigationAllowed=url=>{try{const u=new URL(url);return localURL(url)}catch{return false}};
@@ -53,6 +55,7 @@ async function connect(){
 }
 for(const [channel,action] of Object.entries({open:()=>shell.openExternal(SITE),connect,check:async()=>{await check();},test:async()=>{await notification({title:'NAV · Notifications work',body:'Your Windows companion can show native reminders.'});},status:()=>reminderStatus}))ipcMain.handle('nav:'+channel,(event)=>{if(event.sender!==win?.webContents||!localURL(event.senderFrame?.url||''))throw Error('Local companion only.');return action();});
 app.whenReady().then(async()=>{
+ if(!smoke&&app.isPackaged)registerShortcut(shell,fs,app.getPath('appData'),app.getPath('exe'));
  try{const input=JSON.parse(fs.readFileSync(prefsFile(),'utf8'));prefs={reminders:typeof input.reminders==='boolean'?input.reminders:true,seen:input.seen&&typeof input.seen==='object'?input.seen:{}};}catch{}
  try{if(safeStorage.isEncryptionAvailable())connection=parseSetup(safeStorage.decryptString(fs.readFileSync(connectionFile())));}catch{}
  createWindow();win.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));win.webContents.session.setPermissionCheckHandler(()=>false);win.webContents.on('did-finish-load',check);const shortcut=globalShortcut.register('CommandOrControl+Space',()=>{if(win?.isVisible())win.hide();else show();});
