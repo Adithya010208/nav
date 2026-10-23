@@ -19,6 +19,7 @@ public final class MainActivity extends Activity {
     private TextView reminderStatus;
     private TextView reminderTime;
     private TextView cloudStatus;
+    private TextView taskStatus;
     private int reminderHour=18,reminderMinute=30;
     private String pendingReminderAction="";
     @Override public void onCreate(Bundle state) {
@@ -57,6 +58,16 @@ public final class MainActivity extends Activity {
             }).show();
         });
         reminderStatus=text("",16);refreshReminder();
+        text("Website task and deadline reminders",22);
+        text("Connect a separate read-only phone setup from NAV website Settings. This reads task titles, dates, deadlines, study time and time zone only. It cannot change tasks or read documents/messages. Enabling uses the website plan instead of this phone’s daily reminder; disabling restores the previous phone reminder. Android background refresh may be delayed. Fresh encrypted cached plans work offline for up to 72 hours, so recent task edits or revocation may take until the next successful sync to reach this phone.",16);
+        taskStatus=text("",16);
+        button("Connect website task reminders",()->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json"),7340));
+        button("Enable website task reminders",()->new android.app.AlertDialog.Builder(this).setTitle("Enable read-only plan reminders?").setMessage("Download your task titles, dates, deadlines and study time using the separate phone reminder connection? NAV will cache the minimized plan encrypted on this phone and schedule local alerts. This replaces the phone-local daily reminder while enabled. No tasks, documents or messages can be edited or uploaded through this connection.").setNegativeButton("Cancel",null).setPositiveButton("Enable",(dialog,which)->{if(!TaskReminders.enable(this))Toast.makeText(this,"Import a valid phone reminder setup and allow notifications first.",Toast.LENGTH_LONG).show();refreshTasks();refreshReminder();}).show());
+        button("Sync website task reminders now",()->{TaskReminders.enqueue(this);refreshTasks();});
+        button("Refresh task reminder status",this::refreshTasks);
+        button("Disable website task reminders",()->{TaskReminders.disable(this);refreshTasks();refreshReminder();});
+        button("Remove task reminder connection",()->{TaskReminders.disconnect(this);refreshTasks();refreshReminder();});
+        TaskReminders.importPrivateSetup(this);refreshTasks();
         text("Optional college notice inbox", 22);
         text("Only new Android notifications from one exact WhatsApp group are retained locally. Notification access is broad at the OS level; NAV filters before storage. Muted, hidden, missing and old messages cannot be recovered. No replies or changes to WhatsApp are supported. Optional cloud sync below sends captured notices only to your private NAV account after secure setup and explicit opt-in.", 16);
         EditText group = new EditText(this); group.setHint("Exact approved WhatsApp group title"); group.setSingleLine(true); group.setText(prefs.getString("group", "")); layout.addView(group);
@@ -96,10 +107,16 @@ public final class MainActivity extends Activity {
         inbox = text("", 16); inbox.setTextIsSelectable(true);
         refresh();
     }
-    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.ensureScheduled(this);refreshReminder();}if(cloudStatus!=null){CloudSync.importPrivateSetup(this);refreshCloud();} }
+    @Override public void onResume() { super.onResume(); if(inbox != null) refresh(); if(reminderStatus!=null){StudyReminders.ensureScheduled(this);refreshReminder();}if(cloudStatus!=null){CloudSync.importPrivateSetup(this);refreshCloud();}if(taskStatus!=null){TaskReminders.importPrivateSetup(this);TaskReminders.schedule(this);refreshTasks();} }
+    private void refreshTasks(){if(taskStatus==null)return;android.content.SharedPreferences state=TaskReminders.prefs(this);String value=(TaskReminders.enabled(this)?"Website reminders enabled. ":"Website reminders off. ")+state.getString("status","No separate phone reminder setup connected.");long sync=state.getLong("lastSyncAt",0);if(sync>0)value+=" Last sync: "+java.time.Instant.ofEpochMilli(sync).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("d MMM, h:mm a",java.util.Locale.ENGLISH))+" · plan revision "+state.getLong("revision",0)+".";taskStatus.setText(value);}
     private void refreshCloud(){if(cloudStatus!=null)cloudStatus.setText((CloudSync.prefs(this).getBoolean("enabled",false)?"Cloud sync enabled. ":"Cloud sync off. ")+CloudSync.prefs(this).getString("status","Secure device setup has not been completed."));}
     @Override public void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
+        if(request==7340&&result==RESULT_OK&&data!=null&&data.getData()!=null){
+            try(java.io.InputStream input=getContentResolver().openInputStream(data.getData())){
+                if(input==null)throw new java.io.IOException();java.io.ByteArrayOutputStream buffer=new java.io.ByteArrayOutputStream();byte[] chunk=new byte[1024];int n;while((n=input.read(chunk))!=-1){if(buffer.size()+n>6000)throw new java.io.IOException();buffer.write(chunk,0,n);}TaskReminders.importSetup(this,new JSONObject(buffer.toString("UTF-8")));Toast.makeText(this,"Separate reminder setup stored encrypted. Enable website task reminders when ready.",Toast.LENGTH_LONG).show();
+            }catch(Exception invalid){Toast.makeText(this,"Invalid or expired phone reminder setup. Create a new one in website Settings.",Toast.LENGTH_LONG).show();}refreshTasks();refreshReminder();return;
+        }
         if(request!=7313||result!=RESULT_OK||data==null||data.getData()==null)return;
         try {
             JSONObject bundle;
@@ -121,6 +138,7 @@ public final class MainActivity extends Activity {
     }
     @Override public void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);state.putString("pendingReminderAction",pendingReminderAction);state.putInt("reminderHour",reminderHour);state.putInt("reminderMinute",reminderMinute);}
     private void requestReminder(String action){
+        if("enable".equals(action)&&TaskReminders.enabled(this)){reminderStatus.setText("Website task reminders are enabled. Disable them first to restore the phone-local daily reminder.");return;}
         StudyReminders.channel(this);pendingReminderAction=action;
         if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},7310);return;}
         applyReminderAction();

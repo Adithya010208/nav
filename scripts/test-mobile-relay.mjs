@@ -1,0 +1,17 @@
+import {build} from 'esbuild';import assert from 'node:assert/strict';import {createRequire} from 'node:module';const require=createRequire(import.meta.url);
+globalThis.Deno={env:{get:n=>({SUPABASE_URL:'https://db.invalid',SUPABASE_SECRET_KEYS:'{"default":"fixture-server-only"}'})[n]},serve(){}};
+await build({entryPoints:['supabase/functions/nav-phone-reminders/index.ts','lib/desktop-snapshot.ts','lib/model.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.sites-runtime/tests/mobile',outExtension:{'.js':'.cjs'}});
+const {handler,validSnapshot}=require('../.sites-runtime/tests/mobile/supabase/functions/nav-phone-reminders/index.cjs'),{desktopSnapshot}=require('../.sites-runtime/tests/mobile/lib/desktop-snapshot.cjs'),{emptyWorkspace}=require('../.sites-runtime/tests/mobile/lib/model.cjs');
+const w=emptyWorkspace();w.profile.name='private-name';w.profile.approvedGroup='private-group';w.tasks=[{id:'a',title:'Study',date:'2026-10-22',due:'',status:'planned',notes:'private-note'},{id:'b',title:'Done',status:'done'}];const data=desktopSnapshot(w);assert(validSnapshot(data));assert.equal(JSON.stringify(data).includes('private'),false);assert.equal(data.tasks.length,1);assert(!validSnapshot({...data,sources:[]}));assert(!validSnapshot({...data,profile:{...data.profile,name:'private'}}));
+const token='navp_'+'a'.repeat(64),server='navs_'+'b'.repeat(64),id='11111111-1111-4111-8111-111111111111';let calls=[],mode='ok';
+globalThis.fetch=async(url,o)=>{calls.push({url,o});assert.equal(o.headers.apikey,'fixture-server-only');assert.equal(o.headers.Authorization,undefined);if(url.includes('nav_mobile_links?'))return Response.json(mode==='revoked'?[]:[{id,user_id:'owner,one',expires_at:new Date(Date.now()+86400000).toISOString()}]);if(url.includes('nav_reminder_snapshots?'))return Response.json([{payload:data,revision:2,updated_at:new Date().toISOString()}]);if(url.includes('nav_server_keys?'))return Response.json([{token_hash:'fixture'}]);return Response.json({saved:true});};
+const send=(op,t=token,b={})=>handler(new Request('https://relay.invalid/?op='+op,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(b)}));
+assert.equal((await send('read','navd_'+'c'.repeat(64))).status,401);assert.equal(calls.length,0);
+for(const op of ['create','revoke','publish','list','upload'])assert.equal((await send(op)).status,403);assert.equal(calls.length,0);
+const response=await send('read');assert.equal(response.status,200);const result=await response.json();assert.equal(result.scope,id);assert.equal(JSON.stringify(result).includes('owner'),false);assert.equal(new URL(calls[1].url).searchParams.get('user_id'),'eq.owner,one');assert.equal(calls[0].url.includes(token),false);
+mode='revoked';assert.equal((await send('read')).status,401);mode='ok';
+assert.equal((await send('publish',server,{userId:'owner',value:{revision:3,data:{...data,sources:[]}}})).status,400);
+assert.equal((await send('publish',server,{userId:'owner',value:{revision:3,data}})).status,200);
+globalThis.fetch=async()=>{throw Error('private fixture');};const failed=await send('read');assert.equal(failed.status,503);assert(!(await failed.text()).includes('private fixture'));
+console.log('Phone reminder relay checks passed: snapshot minimization, separate credential scopes, read-only owner-bound access, revocation, URI-safe filters, validation and redacted failures.');
+

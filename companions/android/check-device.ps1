@@ -26,10 +26,10 @@ if($Install){
 Invoke-AdbChecked ($prefix+@('install','-r',$test)) | Out-Null
 try {
     $result=Invoke-AdbChecked ($prefix+@('shell','am','instrument','-w','app.nav.companion.test/app.nav.companion.InboxChecks'))
-    if($result -notmatch 'PASS: 30 Android notification isolation/retention checks' -or $result -match 'FAIL:|INSTRUMENTATION_FAILED|Process crashed'){
+    if($result -notmatch 'PASS: 43 Android notification isolation/retention checks' -or $result -match 'FAIL:|INSTRUMENTATION_FAILED|Process crashed'){
         throw "Device fixtures did not pass: $result"
     }
-    Write-Output 'PASS: 30 isolated Android fixtures. Real WhatsApp receipt and reminder delivery still need acceptance checks.'
+    Write-Output 'PASS: 43 isolated Android fixtures. Live task sync and task-reminder delivery still need acceptance checks.'
 } finally {
     Invoke-AdbChecked ($prefix+@('uninstall','app.nav.companion.test')) | Out-Null
 }
