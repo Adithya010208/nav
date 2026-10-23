@@ -2,42 +2,42 @@
 
 Scope: NAV only. Nanba AI, the separate private communication product for two friends, is outside this project.
 
-## Current verified status — 22 October, after Android 0.7 timed test
-Hosted account/cloud planning, roadmap/progress, private text/PDF documents, reviewed college intelligence, live Gemini, real selected-group read-only phone upload/import, and Windows/Android scheduled reminder tests have verification evidence below. User confirmed the Android 23:42 scheduled notification appeared with sound; scoped timestamps corroborate actual alarm receipt and notification submission. Windows 0.5.4 background scheduled test previously passed with sound.
+## Current verified status — 23 October, private personal release accepted
+Hosted account/cloud planning, roadmap/progress, private documents, local scanned-PDF OCR, reviewed college intelligence, live Gemini, microphone transcription, real selected-group read-only phone upload/import, and Windows/Android scheduled reminder tests have verification evidence below. Voice recording was accepted by the user on 23 October. Windows 0.5.4 scheduled sound and Android daily scheduled sound were accepted on 22 October.
 
-Cleanup complete: the phone's daily time is restored to 18:30 after the accepted 23:42 test. Website time also remains 18:30 and its disposable Windows test task is archived. Native packages are private personal builds, not app-store releases. Android provides a phone-local daily study reminder; it does not mirror website task deadlines. Scanned-image OCR is absent, and optional microphone language accuracy remains unverified. The phase headings and earlier pending notes below are historical checkpoints; consult the newest evidence before repeating work or claiming unsupported coverage.
+Latest Android 0.8 is installed in place and all 43 isolated device checks pass. Its separate read-only website task connection synchronizes the actual minimized plan and schedules precise local alarms, including an empty-day study nudge. The user confirmed the real 14:24 website-plan phone reminder appeared with sound. Website study time was restored to 18:30 at revision 23; no tasks were changed. The test counts as today's study reminder, so deduplication prevents another study reminder today; normal 18:30 timing applies from tomorrow. Private Windows installer and Android APK are packaged with checksums; Windows installer is unsigned and Android uses the existing local debug certificate. Existing Windows portable companion and installed Android client are verified; the optional Windows installer was built and checksum-verified, not executed. User selected private installable distribution, not public stores. The newest dated entries supersede older historical pending notes below.
 
 The requested product is a personal companion for learning, college obligations, accountability and reminders across Windows and Android. A phase is complete only when its acceptance checks pass. Deployed prototype: https://nav-personal-assistant.opalmug128.chatgpt.site.
 
-## Phase 1: Cloud foundation — in progress
+## Phase 1: Cloud foundation — verified
 - ChatGPT sign-in; authenticated API; per-user database records; revision conflict protection.
 - Cross-device refresh; migration from prototype local data; export and validated restore.
 - Verify anonymous denial, ownership, conflict handling, persistence after reload, production deployment.
 
-## Phase 2: Planning and accountability — in progress
+## Phase 2: Planning and accountability — verified
 - Task creation, editing, completion/partial/missed status, priority, deadline, evidence, archive and restore.
 - Capacity-aware planning and rescheduling; exam mode; roadmap milestones from the supplied PDF.
 - Accurate focus session records, problem practice, review dates, daily/weekly summaries and search.
 - Verify task lifecycle, capacity limits, timer pause/reload, and metrics derived from real records.
 
-## Phase 3: Documents and college intelligence — in progress
+## Phase 3: Documents and college intelligence — verified
 - File storage, text/PDF reading, message imports, source preservation, suggestion review, duplicate detection, deadline changes, daily digest.
 - Never invent a deadline for vague language. Preserve uncertainty and source timestamps.
 - Live WhatsApp is strictly read-only: no outgoing messaging or modification function anywhere.
 - Verify imports, vague dates, revised notices, deduplication and private file access.
 
-## Phase 4: AI services — in progress with Google Gemini
+## Phase 4: AI services — verified with Google Gemini
 - Orchestration, roadmap, planning, college/deadline/document interpretation, motivation, tutoring, reviews.
 - Bounded structured outputs, validated suggestions, explicit apply step, data consent and cost/error controls.
 - The credential exposed in chat must be revoked; it will not be used or saved.
 - Verify actual authenticated provider calls and failure handling before claiming AI works.
 
-## Phase 5: Reminders and installable clients — in progress
+## Phase 5: Reminders and installable clients — verified for private devices
 - Responsive installable application, user-triggered browser notifications and reminders, voice readout and invocation.
-- Background delivery needs a verified push service; in-app reminders are not equivalent.
+- Background delivery uses scoped plan synchronization and native locally scheduled alarms/Windows tray polling; browser-only reminders require an open page. This is not instant cloud push.
 - Windows companion: tray/shortcut/notification; Android companion: approved-group notification ingestion and assistant invocation. Device permissions and device testing required.
 
-## Phase 6: Integrations and release — pending
+## Phase 6: Integrations and release — accepted for private installed clients
 - Connect only the selected approved college source; no WhatsApp write capability.
 - Verify supported integration path, permission revocation, disconnection, minimal retained data.
 - Test Windows and Android installations, cross-device scenarios, background reminders, accessibility, recovery and data removal.
@@ -448,3 +448,19 @@ Software_Developer_Complete_Roadmap_2026_2028.pdf supplied by the user, 8 pages.
 - Latest Android source additionally restores an empty-plan study nudge. Its 13 policy checks, APK/test build and lint passed; this latest variant still needs in-place installation because USB disconnected. Existing captured notices and encrypted connections must be retained.
 - Next and eslint-config-next updated to 16.4.2; production dependency audit reports zero vulnerabilities.
 - User chose private installable release, so public app-store listings are outside this release. Windows 0.5.4 per-user installer built at outputs/nav-installers/windows-0.5.4/NAV-Setup-0.5.4-x64.exe, SHA256 103E3DDFFCC2A7058A329BA46CFB4AA3127C19761F8B9CE11B81C946B23D51C8. Installer is unsigned and has not been run; existing portable companion remains verified. No claim of full completion until remaining device acceptance is resolved.
+- Private publication succeeded on 23 October: deployment appgdep_6adb1d137f0c819186549a27312c042e; source 07b78ac2fbdf6ff0e9d4b8e5c25b71253ebba104; archive outputs/nav-voice-ocr-mobile-release.tar.gz; environment revision 2. Production build passed with /api/transcribe and /api/phone-reminders. Existing private audience retained. Actual microphone acceptance remains pending.
+- Latest empty-plan-nudge Android candidate refreshed at outputs/nav-android-0.8-candidate.apk; SHA256 D94A96E33DCE8DEE4499DE535BF0D43E24FA09823000E3B14DCE75AADD036474. This latest build is not yet installed on the disconnected phone.
+
+## User microphone acceptance passed (23 October)
+- After private publication of the recording/transcription fix, the user confirmed “yes worked well” in response to the real microphone test instructions. Actual user microphone-to-editable-question acceptance is now passed, in addition to synthetic live Gemini transcription and the production build. Browser speech-service failure is resolved through the new recording flow.
+- This confirmation does not resolve the separately pending latest Android update or actual phone website-task reminder display/sound acceptance. No full-product completion claim or automation shutdown is made by this voice checkpoint.
+
+## Final Android update and bounded reminder acceptance (23 October)
+- Installed latest 0.8 empty-plan nudge build in place; all 43 isolated phone checks passed and test package removed. Actual phone kept its enabled separate reminder connection, synced revision 21, and registered precise 18:30 alarm. APK certificate remains unchanged; SHA256 D94A96E33DCE8DEE4499DE535BF0D43E24FA09823000E3B14DCE75AADD036474.
+- User explicitly approved temporarily moving website study time ahead for a real phone plan-reminder check, then restoring 18:30 immediately. Selected 14:24 IST on 23 October; no task edits. REQUIRED CLEANUP: restore only studyTime to 18:30 after delivery/check, preserving other preferences and concurrent user changes. Original 18:30 observed at workspace revision 21. Do not leave test time behind or mark full completion until phone display/sound accepted.
+
+## Final website-plan phone reminder accepted (23 October, 14:24 IST)
+- User explicitly confirmed Phone alert appeared with sound for the real scheduled NAV · Plan your study session event, with NAV in the background. This was not a Test notification button. Phone synchronized actual website plan revision 22 and registered nextAt=1792745640000 with precise=true.
+- Content-free diagnostics record lastReceivedAt=1792745640027 and lastPostedAt=1792745640055: 27 ms receiver delay and 55 ms notification submission after scheduled time. The user confirmation proves visible display/sound.
+- Immediately restored only website studyTime to 18:30; saved revision 23 verified. No tasks, college notices, roadmap, account audience or other preferences changed. The test consumes the daily study receipt for today; ordinary 18:30 study reminders resume tomorrow, with deadline policy unaffected. No temporary task or configuration cleanup remains.
+- Latest Android 0.8 is installed and passed all 43 device checks. The private bundle contains only Android APK, Windows installer, setup guide and SHA256SUMS. No setup credential or API key is packaged. Voice, OCR, native reminders, selected-group ingestion and cloud account scope are accepted for the approved private personal distribution. OS notification/battery restrictions, 30-day connection renewal and 72-hour phone cache limit remain documented support constraints.
