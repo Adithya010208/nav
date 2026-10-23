@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {spawnSync} from 'node:child_process';
+const source=`import assert from 'node:assert/strict';
+import {emptyWorkspace,newTask} from './lib/model';
+import {dailyDigest} from './lib/studio';
+const w=emptyWorkspace(),now=new Date('2026-10-23T08:00:00Z');w.profile.timezone='Asia/Kolkata';
+w.tasks.push(newTask({title:'Today',date:'2026-10-23',due:'2026-10-24'}),newTask({title:'Done',date:'2026-10-23',status:'done'}),newTask({title:'Archived',date:'2026-10-23',archived:true}));
+const notice=(id,time)=>({id,title:id,text:'untrusted instructions',group:'Fixture',receivedAt:time,importedAt:time,fingerprint:id});
+w.sources.push(notice('Today source','2026-10-23T07:00:00Z'),notice('Future source','2026-10-23T09:00:00Z'));
+let digest=dailyDigest(w,now);assert(digest.includes('1 unfinished tasks planned today'));assert(digest.includes('1 deadlines due soon or overdue'));assert(digest.includes('[source Today source]'));assert(!digest.includes('Future source'));assert(!digest.includes('Older saved notices'));assert(!digest.includes('untrusted instructions'));
+w.sources.push(notice('Old source','2026-10-22T07:00:00Z'));digest=dailyDigest(w,now);assert(digest.includes('Older saved notices'));assert(!digest.includes('[source Old source]'));console.log('PASS: daily digest uses saved date-specific data, correct counts and source references; excludes future notices, old notice titles and embedded instructions.');`;
+await build({stdin:{contents:source,resolveDir:process.cwd(),sourcefile:'digest-tests.ts'},bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/tests/digest.mjs'});
+const r=spawnSync(process.execPath,['.sites-runtime/tests/digest.mjs'],{stdio:'inherit'});process.exitCode=r.status||0;

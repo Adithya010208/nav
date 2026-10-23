@@ -1,9 +1,10 @@
 import {z} from 'zod';
 import {validDate,Workspace,dateInZone} from './model';
-export const aiInput=z.object({question:z.string().trim().min(1).max(2000),mode:z.enum(['briefing','tutor','review','college']),provider:z.enum(['gemini','openai']),connectionTest:z.boolean().default(false),sourceId:z.string().max(100).optional(),consent:z.literal(true)});
+import {memoryContext} from './studio';
+export const aiInput=z.object({question:z.string().trim().min(1).max(2000),mode:z.enum(['briefing','tutor','review','college','coding','motivation']),provider:z.enum(['gemini','openai']),connectionTest:z.boolean().default(false),includeMemory:z.boolean().default(false),coordinate:z.boolean().default(false),sourceId:z.string().max(100).optional(),consent:z.literal(true)});
 export const aiOutput=z.object({answer:z.string().max(12000),suggestions:z.array(z.object({title:z.string().min(1).max(240),minutes:z.number().int().min(5).max(180),category:z.enum(['Roadmap','College','Revision','Personal','Project']),due:z.string().refine(d=>d===''||validDate(d)),reason:z.string().max(1000)})).max(10)});
 export const outputFormat={type:'json_schema',name:'nanba_advice',strict:true,schema:{type:'object',additionalProperties:false,properties:{answer:{type:'string'},suggestions:{type:'array',items:{type:'object',additionalProperties:false,properties:{title:{type:'string'},minutes:{type:'integer'},category:{type:'string',enum:['Roadmap','College','Revision','Personal','Project']},due:{type:'string'},reason:{type:'string'}},required:['title','minutes','category','due','reason']}}},required:['answer','suggestions']}};
-export function aiContext(w:Workspace,mode:string,sourceId?:string,now=new Date()) {
+export function aiContext(w:Workspace,mode:string,sourceId?:string,now=new Date(),memoryQuestion?:string) {
  const today=dateInZone(w.profile.timezone,now),active=w.tasks.filter(t=>!t.archived),daily=active.filter(t=>t.date===today);
  const selected=mode==='college'&&sourceId?w.sources.find(s=>s.id===sourceId):undefined;
  const rank=(t:Workspace['tasks'][number])=>t.status==='done'?4:t.due&&t.due<=today?0:t.date===today?1:t.due?2:3;
@@ -16,7 +17,8 @@ export function aiContext(w:Workspace,mode:string,sourceId?:string,now=new Date(
   planning:{plannedMinutes,availableMinutes:Math.max(0,w.profile.dailyMinutes-plannedMinutes),overbookedMinutes:Math.max(0,plannedMinutes-w.profile.dailyMinutes),unfinishedToday:daily.filter(t=>t.status!=='done').length,overdue:active.filter(t=>t.status!=='done'&&t.due&&t.due<today).length,omittedTaskCount:Math.max(0,ordered.length-80)},
   evidence:{completedTasksLast7Days:active.filter(t=>t.status==='done'&&t.completedAt&&t.completedAt<=today&&t.completedAt>=dateInZone(w.profile.timezone,new Date(now.getTime()-6*86400000))).length,focusSecondsLast7Days:w.sessions.filter(s=>recent(s.endedAt)).reduce((sum,s)=>sum+s.seconds,0)},
   tasks:ordered.slice(0,80).map(({title,date,due,minutes,status,notes})=>({title,date,due,minutes,status,notes:notes.slice(0,600)})),
-  milestones:w.topics.map(({title,week,done})=>({title,week,done})),recentPractice:w.problems.slice(-20),recentFocus:w.sessions.slice().sort((a,b)=>b.endedAt.localeCompare(a.endedAt)).slice(0,20).map(({title,seconds,endedAt,note})=>({title,seconds,endedAt,note:note.slice(0,300)})),
+  milestones:w.topics.map(({title,week,done})=>({title,week,done})),recentPractice:w.problems.filter(p=>p.date<=today).slice(-20),recentFocus:w.sessions.filter(s=>Date.parse(s.endedAt)<=now.getTime()).slice().sort((a,b)=>b.endedAt.localeCompare(a.endedAt)).slice(0,20).map(({title,seconds,endedAt,note})=>({title,seconds,endedAt,note:note.slice(0,300)})),
+  ...(memoryQuestion===undefined?{}:{savedMemory:memoryContext(w,memoryQuestion)}),
   ...(selected?{selectedSource:{text:selected.text,receivedAt:selected.receivedAt,referenceDate:dateInZone(w.profile.timezone,new Date(selected.receivedAt))}}:{})
  };
 }

@@ -1,4 +1,5 @@
 import {outputFormat} from './ai';
+import {limitedBytes} from './http';
 export type ProviderId='gemini'|'openai';
 type Bindings={AI_PROVIDER?:string;GEMINI_API_KEY?:string;GEMINI_MODEL?:string;OPENAI_API_KEY?:string;OPENAI_MODEL?:string};
 export function providerConfig(env:Bindings){
@@ -14,7 +15,7 @@ export async function providerAdvice(config:ReturnType<typeof providerConfig>,in
   body:JSON.stringify(gemini?{model:config.model,max_tokens:4096,messages:[{role:'system',content:instructions},{role:'user',content:input}],response_format:{type:'json_schema',json_schema:{name:outputFormat.name,strict:true,schema:outputFormat.schema}}}:{model:config.model,store:false,max_output_tokens:2200,instructions,input,text:{format:outputFormat}})
  });
  if(!response.ok)throw new ProviderError(response.status===429?`${config.label} quota or rate limit reached. Check your API account and retry later.`:response.status===401||response.status===403?'The server AI credential is invalid or lacks access. Update it privately.':'AI provider request failed. Please retry later.',response.status===429?429:502);
- const result=await response.json() as {status?:string;choices?:{finish_reason?:string;message?:{content?:string}}[];output?:{content?:{type?:string;text?:string}[]}[]};
+ const result=JSON.parse(new TextDecoder().decode(await limitedBytes(response,100000))) as {status?:string;choices?:{finish_reason?:string;message?:{content?:string}}[];output?:{content?:{type?:string;text?:string}[]}[]};
  if(gemini){const choice=result?.choices?.[0];if(choice?.finish_reason!=='stop'||typeof choice?.message?.content!=='string')throw new ProviderError('AI returned an incomplete response. Nothing was applied.');return JSON.parse(choice.message.content);}
  if(result.status!=='completed')throw new ProviderError('AI returned an incomplete response. Nothing was applied.');
  const text=(result.output||[]).flatMap((x:{content?:{type?:string;text?:string}[]})=>x.content||[]).filter((x:{type?:string})=>x.type==='output_text').map((x:{text?:string})=>x.text||'').join('');return JSON.parse(text);

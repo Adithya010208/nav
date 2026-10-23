@@ -7,7 +7,7 @@ export interface Suggestion { id:string; sourceId:string; title:string; due:stri
 export interface Session { id:string; taskId:string; title:string; startedAt:string; endedAt:string; seconds:number; note:string; }
 export interface Problem { id:string; title:string; pattern:string; result:'Independent'|'With hints'|'Revisit'; date:string; notes:string; review3:string; review14:string; }
 export interface Profile { name:string; timezone:string; startDate:string; dailyMinutes:number; studyTime:string; examMode:boolean; approvedGroup:string; onboarded:boolean; }
-export interface Workspace { schemaVersion:2; profile:Profile; tasks:Task[]; topics:Topic[]; sources:Source[]; suggestions:Suggestion[]; sessions:Session[]; problems:Problem[]; }
+export interface Workspace { schemaVersion:2; profile:Profile; tasks:Task[]; topics:Topic[]; sources:Source[]; suggestions:Suggestion[]; sessions:Session[]; problems:Problem[]; studio?:import('./studio').Studio; }
 export const uid=()=>crypto.randomUUID();
 export function dateInZone(zone='Asia/Kolkata',date=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
 export function addDays(iso:string,n:number){const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}

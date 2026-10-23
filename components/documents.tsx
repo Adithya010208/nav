@@ -3,10 +3,10 @@ import {useEffect,useRef,useState} from 'react';
 import {Upload,FileText,BookOpen,ScanText} from 'lucide-react';
 import type {OCRLanguage} from '@/lib/pdf-extraction';
 type StoredFile={id:string;name:string;size:number};
-export default function Documents({onImport}:{onImport:(text:string)=>void}){
+export default function Documents({onImport,importLabel='Use in college inbox ↑'}:{onImport:(text:string,file?:{id:string;name:string})=>void;importLabel?:string}){
  const [files,setFiles]=useState<StoredFile[]>([]),[text,setText]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false);
  const [language,setLanguage]=useState<OCRLanguage>('eng'),[first,setFirst]=useState(1),[last,setLast]=useState(1);
- const active=useRef<AbortController|null>(null);
+ const active=useRef<AbortController|null>(null);const [readSource,setReadSource]=useState<{id:string;name:string}|undefined>();
  async function refresh(){try{const r=await fetch('/api/files'),j=await r.json() as {error:string;files:StoredFile[]};if(!r.ok)throw Error(j.error);setFiles(j.files);}catch(e){setStatus(e instanceof Error?e.message:'Could not load files.');}}
  useEffect(()=>{void refresh();return()=>active.current?.abort();},[]);
  async function upload(file:File){
@@ -25,8 +25,8 @@ export default function Documents({onImport}:{onImport:(text:string)=>void}){
    const r=await fetch('/api/files/'+file.id,{signal:controller.signal});if(!r.ok)throw Error('Document could not be loaded.');
    if(file.name.toLowerCase().endsWith('.pdf')){
     const {extractPDF}=await import('@/lib/pdf-extraction');const result=await extractPDF(new Uint8Array(await r.arrayBuffer()),{signal:controller.signal,onProgress:setStatus,...(scan?{ocr:{language,first,last}}:{})});
-    setText(result.text);setStatus((scan?'Scan recognized locally. OCR can misread names, numbers and dates; verify against the original before importing.':'Text extracted locally. Review it before importing.')+(result.truncated?' Showing the first 30,000 characters.':'')+(result.confidence!==undefined&&result.confidence<75?' Recognition quality is low; consider a clearer scan or another language.':''));
-   }else{const output=await r.text();if(!output.trim())throw Error('This document contains no readable text.');setText(output.slice(0,30000));setStatus('Text loaded. Review it before importing.'+(output.length>30000?' Showing the first 30,000 characters.':''));}
+    setText(result.text);setReadSource({id:file.id,name:file.name});setStatus((scan?'Scan recognized locally. OCR can misread names, numbers and dates; verify against the original before importing.':'Text extracted locally. Review it before importing.')+(result.truncated?' Showing the first 30,000 characters.':'')+(result.confidence!==undefined&&result.confidence<75?' Recognition quality is low; consider a clearer scan or another language.':''));
+   }else{const output=await r.text();if(!output.trim())throw Error('This document contains no readable text.');setText(output.slice(0,30000));setReadSource({id:file.id,name:file.name});setStatus('Text loaded. Review it before importing.'+(output.length>30000?' Showing the first 30,000 characters.':''));}
   }catch(e){setStatus(controller.signal.aborted?'Reading cancelled. Your stored file and previous excerpt are unchanged.':e instanceof Error?e.message:'Could not read document.');}
   finally{if(active.current===controller)active.current=null;setBusy(false);}
  }
@@ -40,6 +40,6 @@ export default function Documents({onImport}:{onImport:(text:string)=>void}){
   {files.map(f=><div className="file" key={f.id}><FileText size={16}/><a href={'/api/files/'+f.id} target="_blank" rel="noreferrer">{f.name}</a><small>{Math.ceil(f.size/1024)} KB</small><button className="secondary" disabled={busy} onClick={()=>read(f)}><BookOpen size={13}/>Read text</button>{f.name.toLowerCase().endsWith('.pdf')&&<button className="secondary" disabled={busy} onClick={()=>read(f,true)}><ScanText size={13}/>Recognize scan</button>}<button className="secondary" disabled={busy} onClick={()=>remove(f)}>Delete document</button></div>)}
   {active.current&&<button className="secondary" onClick={()=>active.current?.abort()}>Cancel reading</button>}
   {status&&<p role="status">{status}</p>}
-  {text&&<><label>Extracted text / selected excerpt<textarea value={text} onChange={e=>setText(e.target.value)} maxLength={30000} style={{minHeight:220}}/></label><button className="primary" disabled={busy} onClick={()=>{onImport(text);setStatus('Copied to the message form above. Verify its received date and import it.');}}>Use in college inbox ↑</button></>}
+  {text&&<><label>Extracted text / selected excerpt<textarea value={text} onChange={e=>setText(e.target.value)} maxLength={30000} style={{minHeight:220}}/></label><button className="primary" disabled={busy} onClick={()=>{onImport(text,readSource);setStatus('Copied to the review form. Verify the text and source before applying.');}}>{importLabel}</button></>}
  </section>;
 }

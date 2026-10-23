@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "NAV · Plan. Learn. Finish.",
-  description: "Your learning plan, college deadlines and daily progress in one private workspace.",
+  title: "NAV · Your Personal AI Study Companion",
+  description: "Your next step, a little clearer. Your learning plan, college deadlines and progress in one private workspace.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
