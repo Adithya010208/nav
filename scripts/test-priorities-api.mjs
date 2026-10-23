@@ -1,0 +1,23 @@
+import {build} from 'esbuild';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,readdirSync,mkdirSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url),db=new DatabaseSync(':memory:');mkdirSync('.sites-runtime/tests',{recursive:true});
+for(const f of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())db.exec(readFileSync('drizzle/'+f,'utf8'));
+globalThis.__priorityUser={userId:'alice',email:'alice@example.test'};
+globalThis.__priorityEnv={AI_PROVIDER:'gemini',GEMINI_API_KEY:'fixture-not-a-key',DB:{prepare(sql){return {bind(...args){const q=db.prepare(sql);return {async first(){return q.get(...args)||null},async run(){return q.run(...args)},async all(){return {results:q.all(...args)}}};}};}}};
+const plugin={name:'priority-fixture',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'priority'}));b.onResolve({filter:/^@\/app\/chatgpt-auth$/},()=>({path:'auth',namespace:'priority'}));b.onLoad({filter:/.*/,namespace:'priority'},({path})=>({contents:path==='env'?'export const env=globalThis.__priorityEnv;':'export async function getChatGPTUser(){return globalThis.__priorityUser;}'}));}};
+async function compile(entry,name){await build({entryPoints:[entry],bundle:true,platform:'node',format:'cjs',outfile:'.sites-runtime/tests/'+name+'.cjs',plugins:[plugin]});return require('../.sites-runtime/tests/'+name+'.cjs');}
+const rules=await compile('lib/priorities.ts','priority-rules');
+const workspace=await compile('app/api/workspace/route.ts','priority-workspace'),api=await compile('app/api/priorities/route.ts','priority-api');
+const origin='https://priority.test';const initial=await(await workspace.GET()).json();initial.data.profile.onboarded=true;initial.data.tasks.push({id:'alice-task',title:'Alice assignment',category:'College',date:'2026-10-23',due:'2026-10-26',minutes:30,priority:2,status:'planned',notes:'private notes must not be sent',createdAt:new Date().toISOString()});assert.equal((await workspace.PUT(new Request(origin+'/api/workspace',{method:'PUT',headers:{Origin:origin},body:JSON.stringify({revision:0,data:initial.data})}))).status,200);
+let calls=0,answerTask='alice-task';globalThis.fetch=async(url,options)=>{calls++;assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');const body=JSON.parse(options.body);assert.equal(body.response_format.json_schema.name,'nav_priority_review');assert(!options.body.includes('private notes'));return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({summary:'Due date first',proposals:[{taskId:answerTask,priority:1,rank:1,reason:'Upcoming deadline'}]})}}]});};
+const ask=(body={provider:'gemini',consent:true,approveProviderCall:true},site=origin)=>api.POST(new Request(origin+'/api/priorities',{method:'POST',headers:{Origin:site,'Content-Type':'application/json'},body:JSON.stringify(body)}));
+assert.equal((await ask({},origin)).status,400);assert.equal(calls,0);assert.equal((await ask(undefined,'https://foreign.test')).status,403);assert.equal(calls,0);
+const r=await ask();assert.equal(r.status,200);const review=await r.json();assert.equal(review.proposals[0].expected.priority,2);assert.equal(review.revision,1);assert.equal(JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('alice').payload).tasks[0].priority,2,'AI endpoint never applies changes');
+const pending=await(await workspace.GET()).json();rules.applyPriorities(pending.data,review,['alice-task']);const applied=await workspace.PUT(new Request(origin+'/api/workspace',{method:'PUT',headers:{Origin:origin},body:JSON.stringify({revision:pending.revision,data:pending.data})}));assert.equal(applied.status,200);assert.equal(JSON.parse(db.prepare('SELECT payload FROM workspaces WHERE user_id=?').get('alice').payload).tasks[0].priority,1,'Only reviewed apply persists the selected delta');
+answerTask='unknown';assert.equal((await ask()).status,502);answerTask='alice-task';
+globalThis.__priorityUser={userId:'bob',email:'bob@example.test'};assert.equal((await ask()).status,400);globalThis.__priorityUser={userId:'alice',email:'alice@example.test'};
+db.prepare('UPDATE ai_usage SET count=20 WHERE user_id=?').run('alice');const before=calls;assert.equal((await ask()).status,429);assert.equal(calls,before);
+globalThis.__priorityUser=null;assert.equal((await ask()).status,401);db.close();console.log('PASS: real SQLite migrations, authenticated owner-specific priority proposals, no implicit writes, explicit provider-call consent, origin boundary, invented-ID rejection and shared quota. Provider is mocked; no API charge.');

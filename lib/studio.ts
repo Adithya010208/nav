@@ -1,21 +1,23 @@
+import {examSchema} from './exams';
 import {z} from 'zod';
 import {addDays,dateInZone,newTask,validDate,type Workspace,type Task} from './model';
 const id=z.string().min(1).max(100),day=z.string().refine(validDate,'Invalid date'),optionalDay=z.union([day,z.literal('')]);
 const title=z.string().trim().min(1).max(240),note=z.string().max(3000);
 function safeURL(value:string){try{if(!value)return true;const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password;}catch{return false;}}
 export const studioSchema=z.object({
+ exams:z.array(examSchema).max(100).default([]),
  memories:z.array(z.object({id,kind:z.enum(['goal','preference','project','fact']),text:z.string().trim().min(1).max(2000),date:day})).max(200).default([]),
  conversations:z.array(z.object({id,question:z.string().max(2000),answer:z.string().max(12000),mode:z.string().max(30),createdAt:z.string().datetime()})).max(50).default([]),
  projects:z.array(z.object({id,title,goal:note,due:optionalDay,status:z.enum(['active','paused','done']),taskIds:z.array(id).max(100),milestones:z.array(z.object({id,title,done:z.boolean()})).max(50)})).max(100).default([]),
  opportunities:z.array(z.object({id,title,organization:z.string().max(160),url:z.string().max(1000).refine(safeURL,'Use an HTTP(S) URL without credentials'),due:optionalDay,status:z.enum(['saved','applied','interview','offer','closed']),notes:note})).max(200).default([]),
  habits:z.array(z.object({id,title,days:z.array(day).max(1100)})).max(50).default([]),
- busy:z.array(z.object({id,title,start:z.string().datetime(),end:z.string().datetime()})).max(300).default([]),
+ busy:z.array(z.object({id,title,calendarUid:z.string().max(300).optional(),start:z.string().datetime(),end:z.string().datetime()})).max(300).default([]),
  slots:z.array(z.object({id,taskId:id,start:z.string().datetime(),end:z.string().datetime()})).max(300).default([]),
  checkins:z.array(z.object({id,date:day,note,energy:z.enum(['low','steady','high'])})).max(730).default([]),
  wakePhrase:z.string().trim().max(60).default('Hey NAV'),
  dependencies:z.array(z.object({topicId:id,requires:z.array(id).max(30)})).max(500).default([]),
  activeRoadmap:z.array(id).max(500).default([]),
-}).superRefine((s,ctx)=>{for(const key of ['memories','conversations','projects','opportunities','habits','busy','slots','checkins'] as const)if(new Set(s[key].map(x=>x.id)).size!==s[key].length)ctx.addIssue({code:'custom',message:'Duplicate '+key+' IDs'});for(const v of [...s.busy,...s.slots])if(v.end<=v.start)ctx.addIssue({code:'custom',message:'Event end must follow its start'});for(const h of s.habits)if(new Set(h.days).size!==h.days.length)ctx.addIssue({code:'custom',message:'Duplicate habit day'});});
+}).superRefine((s,ctx)=>{for(const key of ['exams','memories','conversations','projects','opportunities','habits','busy','slots','checkins'] as const)if(new Set(s[key].map(x=>x.id)).size!==s[key].length)ctx.addIssue({code:'custom',message:'Duplicate '+key+' IDs'});for(const v of [...s.busy,...s.slots])if(v.end<=v.start)ctx.addIssue({code:'custom',message:'Event end must follow its start'});for(const h of s.habits)if(new Set(h.days).size!==h.days.length)ctx.addIssue({code:'custom',message:'Duplicate habit day'});});
 export type Studio=z.infer<typeof studioSchema>;
 export function studio(w:Workspace):Studio{return w.studio||studioSchema.parse({});}
 export function editStudio(w:Workspace){return w.studio??(w.studio=studioSchema.parse({}));}
@@ -32,6 +34,7 @@ export function validateStudioRelations(w:Workspace){
  if(!w.studio)return;const s=w.studio,taskIds=new Set(w.tasks.map(t=>t.id));
  if(s.projects.some(p=>p.taskIds.some(id=>!taskIds.has(id))))throw Error('A project references a missing task.');
  checkDependencies(w,s.dependencies);
+ for(const e of s.exams||[]){if(e.sourceId&&!w.sources.some(x=>x.id===e.sourceId))throw Error('Exam source is missing.');if(e.topicIds.some(id=>!w.topics.some(t=>t.id===id)))throw Error('Exam milestone is missing.');}
  if(s.activeRoadmap.some(id=>!w.topics.some(t=>t.id===id)))throw Error('Active roadmap references a missing milestone.');
  for(const slot of s.slots){const task=w.tasks.find(t=>t.id===slot.taskId);if(!task||task.archived||task.status==='done'||Date.parse(slot.end)-Date.parse(slot.start)!==task.minutes*60000||dateInZone(w.profile.timezone,new Date(slot.start))!==task.date||dateInZone(w.profile.timezone,new Date(Date.parse(slot.end)-1))!==task.date)throw Error('A study slot no longer matches its active task, duration or date.');}
 }

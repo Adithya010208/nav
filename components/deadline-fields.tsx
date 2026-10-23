@@ -1,0 +1,6 @@
+'use client';
+import {clockInZone} from '@/lib/deadlines';
+export default function DeadlineFields({value,zone}:{value?:{dueAt?:string;dueZone?:string;advanceMinutes?:number;dueTime?:string};zone:string}){
+ const timezone=value?.dueZone||zone,time=value?.dueAt?clockInZone(value.dueAt,timezone):value?.dueTime||'';
+ return <fieldset className="form-grid"><legend>Exact deadline (optional)</legend><label>Exact deadline time<input name="dueTime" type="time" defaultValue={time}/></label><label>Deadline time zone<input name="dueZone" defaultValue={timezone} maxLength={80}/></label><label>Advance warning (minutes)<input name="advanceMinutes" type="number" min={0} max={10080} defaultValue={value?.advanceMinutes??60}/></label><label>If clocks repeat this time<select name="fold" defaultValue="reject"><option value="reject">Ask me to resolve ambiguity</option><option value="earlier">Earlier occurrence</option><option value="later">Later occurrence</option></select></label><label className="check-label"><input type="checkbox" name="confirmDeadline"/>I verified the deadline date, clock time and time zone against the source.</label><small>Leave time empty for a date-only deadline. Exact alerts currently work while browser reminders are enabled and NAV stays open; existing native companions retain their date-based summaries until upgraded.</small></fieldset>;
+}

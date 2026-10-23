@@ -1,0 +1,690 @@
+{
+  "auditStatus": "SPRINT_IMPLEMENTATION_IN_PROGRESS",
+  "productReleaseGate": "NOT_READY_FOR_EXPANDED_73_FEATURE_SPECIFICATION",
+  "clientDate": "2026-10-23",
+  "timezone": "Asia/Calcutta",
+  "auditedApplicationCommit": "59514eadbe462aa2ebd4221558590d155507f2a2",
+  "counts": {
+    "COMPLETE": 55,
+    "PARTIAL": 11,
+    "MISSING": 0,
+    "BROKEN": 0,
+    "BLOCKED": 1,
+    "NOT VERIFIED": 6
+  },
+  "verifiedPercent": 75.34,
+  "remainingPercent": 24.66,
+  "automatedSuites": {
+    "passed": 29,
+    "failed": 0,
+    "executedAt": "2026-10-23T16:34:35.539Z",
+    "providerScope": "mocked except local OCR engine; no live API request"
+  },
+  "typescript": "PASS",
+  "productionBuild": "PASS_BEFORE_SUCCESSFUL_PRIVATE_DEPLOYMENT",
+  "matrixValidation": "PASS_73_UNIQUE_ORDERED_ROWS_7_COLUMNS",
+  "sourceReferenceValidation": {
+    "checked": 26,
+    "missing": 0
+  },
+  "features": [
+    {
+      "id": 1,
+      "feature": "AI Chat Assistant",
+      "status": "COMPLETE",
+      "evidence": "`components/conversation-assistant.tsx; app/api/assistant/route.ts`; B03 real Gemini question/answer and later-session exchange",
+      "issues": "Provider answers remain fallible",
+      "fix": "Persistent optional exchanges and validated responses",
+      "test": "PASS live + agents-memory"
+    },
+    {
+      "id": 2,
+      "feature": "Long-Term Memory",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts memoryContext; lib/ai.ts; /api/workspace`; B01/B03 explicit saved goal survives refresh and is retrieved in later live answer",
+      "issues": "Memory is opt-in; 200 memories / 50 exchanges",
+      "fix": "Owner-persisted memory, separate sharing consent, bounded retrieval",
+      "test": "PASS browser + two-owner SQLite"
+    },
+    {
+      "id": 3,
+      "feature": "Multi-Agent AI System",
+      "status": "COMPLETE",
+      "evidence": "`lib/agents.ts; app/api/assistant/route.ts`; B03 specialist → grounding reviewer → validator actually executed",
+      "issues": "Two calls; reviewer is not a truth guarantee",
+      "fix": "Coordinated specialist/reviewer and atomic two-call quota",
+      "test": "PASS live + mocked failure/security cases"
+    },
+    {
+      "id": 4,
+      "feature": "Context Awareness",
+      "status": "COMPLETE",
+      "evidence": "`lib/ai.ts aiContext; scripts/test-ai-context.mjs`; B03 coding and motivation outputs reflect saved goal/tasks/focus",
+      "issues": "Bounded context can omit older records",
+      "fix": "Future-record exclusion and explicit memory context",
+      "test": "PASS live + context tests"
+    },
+    {
+      "id": 5,
+      "feature": "Personalization",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx Settings; lib/model.ts; lib/studio.ts`; B01 saved preferences and goal; B03 personalized live responses",
+      "issues": "No inferred sensitive profile",
+      "fix": "Capacity/time/zone preferences retained; explicit memories added",
+      "test": "PASS UI persistence + validation"
+    },
+    {
+      "id": 6,
+      "feature": "Daily Task Planner",
+      "status": "COMPLETE",
+      "evidence": "`lib/roadmap.ts makeDailyPlan; app/nav-app.tsx generatePlan`; B04 imported topic generated 75+50 minutes with only 125 minutes free",
+      "issues": "User invokes generation; no unattended AI task writes",
+      "fix": "Active imported roadmap, prerequisite eligibility and completed-budget accounting",
+      "test": "PASS browser + roadmap-active/core"
+    },
+    {
+      "id": 7,
+      "feature": "AI Task Prioritization",
+      "status": "COMPLETE",
+      "evidence": "`app/api/priorities/route.ts; lib/priorities.ts; components/sprint-tools.tsx`; S1 live approved Gemini comparison and explicit reviewed save (local revision 46)",
+      "issues": "Live response retained current levels; actual changed-priority persistence separately tested in real SQLite",
+      "fix": "Bounded owner task selection, rank/reason comparison, selected apply and stale-task rejection",
+      "test": "PASS actual provider/UI and test-priorities-api; no implicit writes"
+    },
+    {
+      "id": 8,
+      "feature": "Automatic Scheduling",
+      "status": "COMPLETE",
+      "evidence": "`lib/slots.ts slotPlan; components/study-tools.tsx Schedule`; B06 preview/apply persisted four slots avoiding a saved class",
+      "issues": "Manual busy events only; max 12-hour day window",
+      "fix": "Durable slots, conflict/capacity validation and stale-slot cleanup",
+      "test": "PASS browser + studio tests"
+    },
+    {
+      "id": 9,
+      "feature": "Deadline Tracking",
+      "status": "COMPLETE",
+      "evidence": "`lib/model.ts; app/nav-app.tsx; companions/* reminder policies`; B08 source deadline saved; deadlines displayed and date policy tested",
+      "issues": "Date-level tracking; exact clock-time limitation is feature 17",
+      "fix": "Unambiguous calendar-date extraction extended",
+      "test": "PASS UI/API + date/policy tests"
+    },
+    {
+      "id": 10,
+      "feature": "Smart Rescheduling",
+      "status": "COMPLETE",
+      "evidence": "`lib/model.ts planWithinCapacity; components/study-tools.tsx Review`; B05 manual check-in moved unfinished tasks within capacity",
+      "issues": "Oversized/late items are reported; no invented free time",
+      "fix": "Clear obsolete slots on task changes; preserve IDs",
+      "test": "PASS browser + core/studio"
+    },
+    {
+      "id": 11,
+      "feature": "Conflict Detection",
+      "status": "COMPLETE",
+      "evidence": "`lib/calendar-import.ts; lib/slots.ts; components/sprint-tools.tsx`; S1 imported class raised two overlaps and reviewed replacements cleared them (revision 51)",
+      "issues": "Connected-calendar synchronization remains feature 41 BLOCKED; recurring imports skipped honestly",
+      "fix": "Bounded local ICS preview, deduplication, overlap detection, alternatives, stale-preview guard",
+      "test": "PASS browser and sprint-foundations; appointments preserved"
+    },
+    {
+      "id": 12,
+      "feature": "Task Categorization",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx task dialog/filter; lib/validation.ts`; B02/B08 saved Project/College/Personal/Revision tasks",
+      "issues": "Five supported categories",
+      "fix": "Retained categories across new reviewed flows",
+      "test": "PASS UI + schema/core"
+    },
+    {
+      "id": 13,
+      "feature": "Task Completion Tracking",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx saveTask/setTaskStatus; lib/studio.ts recurringTasks`; B02 reviewed completion persisted; API CAS and archive tested",
+      "issues": "Recurrence is an explicit bounded series, max 12 occurrences",
+      "fix": "Added recurrence preview, deduplication, status persistence",
+      "test": "PASS UI/API + studio/core"
+    },
+    {
+      "id": 14,
+      "feature": "WhatsApp Group Reader",
+      "status": "COMPLETE",
+      "evidence": "`companions/android; components/notice-transfer.tsx; lib/notice-transfer.ts`; D03 prior actual approved-group capture and account ingestion; import tests",
+      "issues": "Authorized notification/import fallback; no direct group history or attachments",
+      "fix": "Preserved exact-group filter and explicit capture/upload consent",
+      "test": "PASS prior device acceptance + transfer/security tests"
+    },
+    {
+      "id": 15,
+      "feature": "Message Analysis",
+      "status": "COMPLETE",
+      "evidence": "`lib/college.ts; lib/ai.ts; components/conversation-assistant.tsx`; B08 live selected-source Gemini identified graph assignment and stated date",
+      "issues": "Only supplied source; human verification remains necessary",
+      "fix": "Expanded date rules and explicit selected-source analysis",
+      "test": "PASS live UI + context tests"
+    },
+    {
+      "id": 16,
+      "feature": "Automatic Task Extraction",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx applySuggestion/saveTask; lib/college.ts findExtractedTask`; B08 AI suggestion → review → persisted College task/source/date",
+      "issues": "Review required; semantic paraphrases may still need user merging",
+      "fix": "Repeated same-source normalized-title suggestion reopens saved task",
+      "test": "PASS real AI/UI + duplicate unit cases"
+    },
+    {
+      "id": 17,
+      "feature": "Deadline Extraction",
+      "status": "PARTIAL",
+      "evidence": "`lib/deadlines.ts; components/deadline-fields.tsx; lib/validation.ts; lib/reminders.ts; lib/calendar.ts`; S1 5 PM Asia/Kolkata save/reopen at revision 49",
+      "issues": "Exact native transport/scheduling and actual deadline sound not upgraded/verified yet",
+      "fix": "Optional exact UTC instant/zone/advance fields, DST gap/fold rejection, ambiguity confirmation, browser alerts and exact ICS export",
+      "test": "PASS browser/schema/time-boundary tests; native still pending"
+    },
+    {
+      "id": 18,
+      "feature": "Exam Timetable Detection",
+      "status": "PARTIAL",
+      "evidence": "`lib/exams.ts; components/sprint-tools.tsx`; S1 structured exam saved with date/start/end/type/location/ratings and persisted progress",
+      "issues": "Automatic multi-subject subject/end/location extraction and full source-to-timetable acceptance remain incomplete",
+      "fix": "Reviewed source date candidates, editable structured exam records, duplicate/reference validation",
+      "test": "PASS browser exam save and schema tests; extraction scope partial"
+    },
+    {
+      "id": 19,
+      "feature": "Announcement Summarizer",
+      "status": "COMPLETE",
+      "evidence": "`components/conversation-assistant.tsx college mode; lib/ai.ts`; B08 real source summary correctly states graph assignment and 26 October",
+      "issues": "Summary does not authenticate original author",
+      "fix": "Selected-source provenance retained, no automatic mutation",
+      "test": "PASS live Gemini + bounded source tests"
+    },
+    {
+      "id": 20,
+      "feature": "Change Detection",
+      "status": "PARTIAL",
+      "evidence": "`lib/college.ts suggestFromMessage; app/nav-app.tsx review dialog`; Possible existing-task update and duplicate import safeguards tested",
+      "issues": "Cannot access edited WhatsApp history; fuzzy superseding detection is limited",
+      "fix": "Unique keyword matching and same-source duplicate guard",
+      "test": "PASS deterministic cases; edit-history integration unsupported"
+    },
+    {
+      "id": 21,
+      "feature": "Source Verification",
+      "status": "COMPLETE",
+      "evidence": "`lib/model.ts Source/Suggestion; app/nav-app.tsx source dialog`; B08 task contains source link, wording and date; B04 PDF evidence retained",
+      "issues": "Source means imported text, not independent author authentication",
+      "fix": "Preserved source IDs/times and review confidence",
+      "test": "PASS UI + source/transfer tests"
+    },
+    {
+      "id": 22,
+      "feature": "Read-Only WhatsApp Access",
+      "status": "COMPLETE",
+      "evidence": "`companions/android notification listener; lib/devices.ts; lib/relay.ts`; D03 opted-in exact-group capture; separate append-only upload scope tested",
+      "issues": "Android notification access itself is broad OS permission",
+      "fix": "No message send/edit/delete/react API introduced",
+      "test": "PASS scope/filter tests + prior phone acceptance"
+    },
+    {
+      "id": 23,
+      "feature": "Roadmap Integration",
+      "status": "COMPLETE",
+      "evidence": "`components/roadmap-import.tsx; components/documents.tsx; lib/roadmap.ts`; B04 actual PDF upload/extraction → selected topics → active roadmap → daily tasks",
+      "issues": "Heading suggestions require review; scan recognition can err",
+      "fix": "Arbitrary PDF/text roadmap import with file/excerpt evidence",
+      "test": "PASS browser + OCR/roadmap-active tests"
+    },
+    {
+      "id": 24,
+      "feature": "Learning Progress Tracker",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx roadmap checkboxes/evidence; /api/workspace`; Saved milestone/evidence workflow and owner persistence tests",
+      "issues": "Completion is user-reported evidence",
+      "fix": "Imported topics use existing durable progress model",
+      "test": "PASS existing UI acceptance + core/SQLite"
+    },
+    {
+      "id": 25,
+      "feature": "AI Study Tutor",
+      "status": "COMPLETE",
+      "evidence": "`components/conversation-assistant.tsx tutor; lib/agents.ts`; Prior live tutor acceptance; B03 grounded coding explanation",
+      "issues": "No guarantee every generated factual claim is correct",
+      "fix": "Reviewed source-aware tutoring and optional independent reviewer",
+      "test": "PASS live provider + validation"
+    },
+    {
+      "id": 26,
+      "feature": "Coding Coach",
+      "status": "COMPLETE",
+      "evidence": "`lib/agents.ts coding mode; components/conversation-assistant.tsx`; B03 live review explained sum('1',2) string concatenation and edge case",
+      "issues": "Code is reviewed, never executed",
+      "fix": "Dedicated coding coach prompt and role trace",
+      "test": "PASS live + agent tests"
+    },
+    {
+      "id": 27,
+      "feature": "Exam Preparation Mode",
+      "status": "PARTIAL",
+      "evidence": "`lib/exams.ts prepareExams; components/sprint-tools.tsx`; S1 three 50-minute sessions and slots explicitly saved before exam at revision 48",
+      "issues": "Automatic missed-preparation workflow and full multi-exam acceptance pending",
+      "fix": "Difficulty/confidence allocation, subject practice/review sessions, capacity/busy/prerequisite checks, duplicate prevention and stale preview rejection",
+      "test": "PASS browser and foundational tests; complete advanced workflow pending"
+    },
+    {
+      "id": 28,
+      "feature": "Smart Revision Planner",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts revisionTasks; app/nav-app.tsx Progress`; B07 practice saved; 3-day and 14-day tasks persisted; first date inspected 26 October",
+      "issues": "User explicitly schedules revisions; no adaptive interval model",
+      "fix": "Both intervals now scheduled, deduplicated and overdue-aware",
+      "test": "PASS UI + studio tests"
+    },
+    {
+      "id": 29,
+      "feature": "Skill Graph",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts setDependencies; components/study-tools.tsx Skills`; B06 saved prerequisite; reverse edge rejected without saving",
+      "issues": "Suggested sequence is labelled, not asserted as learned skill",
+      "fix": "Durable dependency graph, cycle/missing-reference validation",
+      "test": "PASS browser + roadmap-active tests"
+    },
+    {
+      "id": 30,
+      "feature": "Personalized Learning Suggestions",
+      "status": "COMPLETE",
+      "evidence": "`lib/roadmap.ts makeDailyPlan; lib/ai.ts; Skills tab`; B04 next plan uses active graph topic and prerequisite eligibility",
+      "issues": "Suggestions depend on saved evidence",
+      "fix": "Removed unrelated hardcoded labels for imported roadmaps",
+      "test": "PASS browser/live + active graph tests"
+    },
+    {
+      "id": 31,
+      "feature": "Voice Conversations",
+      "status": "NOT VERIFIED",
+      "evidence": "`components/voice.tsx; /api/transcribe`; D02 user accepted actual microphone transcription; synthetic live speech passed",
+      "issues": "Full input → live answer → audible speech roundtrip/noisy-environment latency unverified",
+      "fix": "Retained record/review/transcribe fallback and local TTS",
+      "test": "Input PASS; complete audible conversation NOT VERIFIED"
+    },
+    {
+      "id": 32,
+      "feature": "Custom Wake Phrase",
+      "status": "PARTIAL",
+      "evidence": "`lib/studio.ts voiceAction/wakePhrase; My tools Voice actions`; Configured prefix recognized in submitted transcript tests",
+      "issues": "No foreground acoustic detector or background wake listening",
+      "fix": "Explicit prefix setting with accurate capability wording",
+      "test": "Prefix tests PASS; wake-word listening not implemented"
+    },
+    {
+      "id": 33,
+      "feature": "Voice Task Creation",
+      "status": "NOT VERIFIED",
+      "evidence": "`components/study-tools.tsx Voice actions; lib/studio.ts voiceAction`; B02 typed transcript → reviewed task → persistence passed",
+      "issues": "New intent flow not tested with actual microphone and spoken acknowledgement",
+      "fix": "Created deterministic reviewed add-task intent",
+      "test": "Typed/UI/unit PASS; full spoken workflow NOT VERIFIED"
+    },
+    {
+      "id": 34,
+      "feature": "Voice Schedule Briefing",
+      "status": "NOT VERIFIED",
+      "evidence": "`components/voice.tsx ReadAloud; Voice actions briefing`; Text briefing and installed-voice control render",
+      "issues": "Actual audible schedule delivery not confirmed",
+      "fix": "Read-only schedule intent with local speech control",
+      "test": "Text/unit PASS; audible output NOT VERIFIED"
+    },
+    {
+      "id": 35,
+      "feature": "Voice Progress Updates",
+      "status": "NOT VERIFIED",
+      "evidence": "`components/study-tools.tsx Voice actions; lib/studio.ts`; B02 exact-title completion preview and explicit confirm saved",
+      "issues": "Actual spoken completion roundtrip not verified",
+      "fix": "Added safe completion intent; ambiguous matches require choice",
+      "test": "Typed/UI/unit PASS; microphone workflow NOT VERIFIED"
+    },
+    {
+      "id": 36,
+      "feature": "Intelligent Reminders",
+      "status": "COMPLETE",
+      "evidence": "`companions/windows poller/policy; companions/android alarms`; D01/D02 real future background plan alerts with sound accepted by user",
+      "issues": "Requires running/allowed app; OS policy can suppress; offline limits documented",
+      "fix": "Earlier suppression retry and precise-alarm fixes retained",
+      "test": "PASS real Windows/Android acceptance + policy suites"
+    },
+    {
+      "id": 37,
+      "feature": "Deadline Alerts",
+      "status": "NOT VERIFIED",
+      "evidence": "`lib/desktop-snapshot.ts; Android/Windows deadline policies`; Due/overdue logic and separate scopes tested; receiver diagnostics exist",
+      "issues": "No separately accepted audible before-deadline event in this audit",
+      "fix": "Retained date-based dedupe and retries",
+      "test": "Policy tests PASS; actual deadline-specific sound NOT VERIFIED"
+    },
+    {
+      "id": 38,
+      "feature": "Daily Morning Briefing",
+      "status": "PARTIAL",
+      "evidence": "`app/nav-app.tsx briefing; lib/studio.ts dailyDigest`; B08 on-demand personalized daily summary passed",
+      "issues": "No scheduled full morning briefing notification",
+      "fix": "Added date-grounded digest with source references",
+      "test": "On-demand PASS; scheduled workflow incomplete"
+    },
+    {
+      "id": 39,
+      "feature": "Evening Check-In",
+      "status": "PARTIAL",
+      "evidence": "`components/study-tools.tsx Review; lib/studio.ts checkins`; B05 progress/energy/note saved and unfinished tasks rescheduled",
+      "issues": "No scheduled evening check-in prompt",
+      "fix": "Added explicit manual check-in and capacity-aware rescheduling",
+      "test": "Manual workflow PASS; scheduled start missing"
+    },
+    {
+      "id": 40,
+      "feature": "Missed Task Alerts",
+      "status": "PARTIAL",
+      "evidence": "`app/nav-app.tsx status/replan; native deadline policies`; Unfinished tasks identified in B05; overdue deadlines tested",
+      "issues": "No timed alert for missed non-deadline commitments",
+      "fix": "Added review/check-in visibility",
+      "test": "Manual detection PASS; dedicated alert incomplete"
+    },
+    {
+      "id": 41,
+      "feature": "Calendar Integration",
+      "status": "BLOCKED",
+      "evidence": "`components/reminders.tsx ICS; lib/slots.ts`; ICS snapshot export and manual free-time planning exist",
+      "issues": "Sites plugin eligibility/discovery tool unavailable; no approved calendar target/write scope",
+      "fix": "No unsupported connector IDs or native snapshot injection used",
+      "test": "Manual slots PASS; real calendar sync BLOCKED"
+    },
+    {
+      "id": 42,
+      "feature": "AI Motivation Coach",
+      "status": "COMPLETE",
+      "evidence": "`lib/agents.ts motivation; components/conversation-assistant.tsx`; B08 live response quoted actual 2 completed tasks and 21 measured focus seconds",
+      "issues": "Encouragement is generated advice",
+      "fix": "Dedicated grounded mode forbids invented accomplishments",
+      "test": "PASS live Gemini + schema validation"
+    },
+    {
+      "id": 43,
+      "feature": "Focus Timer",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx focus dialog; components/break-timer.tsx`; B04 measured 6 seconds saved without completing task; one-minute break finished",
+      "issues": "Timers are foreground study tools; not OS enforcement",
+      "fix": "Dedicated Focus destination, separate break timer",
+      "test": "PASS actual timer UI + core tests"
+    },
+    {
+      "id": 44,
+      "feature": "Distraction Management",
+      "status": "PARTIAL",
+      "evidence": "`app/nav-app.tsx Focus; components/break-timer.tsx`; Focused session dialog and separate break control work",
+      "issues": "No broader distraction controls/blocker or platform focus-mode integration",
+      "fix": "Clear focused study experience with no new OS permissions",
+      "test": "Timer PASS; broader distraction tools incomplete"
+    },
+    {
+      "id": 45,
+      "feature": "Daily Productivity Score",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts productivity; Review tab`; B05 score based on saved records; rescheduling inflation reproduced then fixed",
+      "issues": "Current capacity affects historical score; task/focus measures can overlap",
+      "fix": "Fixed-capacity denominator, explained formula, future exclusion",
+      "test": "PASS UI + regression tests"
+    },
+    {
+      "id": 46,
+      "feature": "Habit Tracking",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts habitStreak; My tools Habits`; B01 saved daily check-in and 1-day streak survived refresh",
+      "issues": "Daily habits only; no arbitrary recurrence UI",
+      "fix": "Persistent unique-day check-ins, future exclusion",
+      "test": "PASS UI + streak tests"
+    },
+    {
+      "id": 47,
+      "feature": "Progress Visualization",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx Progress; lib/studio.ts reportPeriod`; B07 real 6-second entry, 21-second week total and saved practice shown",
+      "issues": "User-entered completion/practice are self-reported",
+      "fix": "Future timestamps excluded; per-day meters use actual records",
+      "test": "PASS UI + studio/context tests"
+    },
+    {
+      "id": 48,
+      "feature": "Weekly Performance Review",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts reportPeriod; My tools Review`; B05 actual weekly counts and meters shown",
+      "issues": "AI prose is optional; numerical report is deterministic",
+      "fix": "Date-range validation and bounded local-date analytics",
+      "test": "PASS UI + report fixtures"
+    },
+    {
+      "id": 49,
+      "feature": "Monthly Progress Report",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts reportPeriod; Review tab`; B05 monthly saved-data report and day meters verified",
+      "issues": "No automatic monthly email/report dispatch",
+      "fix": "Added month-specific counts and focus totals",
+      "test": "PASS UI + future-exclusion tests"
+    },
+    {
+      "id": 50,
+      "feature": "Project Management",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts projects; components/study-tools.tsx Projects`; B01 project, linked task and checked milestone; B07 edit saved",
+      "issues": "Project deletion needs explicit confirmation; no collaboration scope",
+      "fix": "Owner-persisted entity, status/date/outcome edit and milestones",
+      "test": "PASS browser persistence + schema relations"
+    },
+    {
+      "id": 51,
+      "feature": "Career Roadmap Tracker",
+      "status": "COMPLETE",
+      "evidence": "`lib/roadmap.ts; app/nav-app.tsx roadmap`; Original career phases/milestones preserved alongside imported topics",
+      "issues": "Fixed original roadmap is educational guidance",
+      "fix": "Added active selection and dependency suggestions",
+      "test": "PASS existing workflow + core/roadmap tests"
+    },
+    {
+      "id": 52,
+      "feature": "Coding Practice Tracker",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx Progress; lib/model.ts Problem`; B07 practice/pattern/result/evidence saved and counted",
+      "issues": "Practice is self-reported",
+      "fix": "Both review intervals connected to tasks",
+      "test": "PASS UI + core/studio"
+    },
+    {
+      "id": 53,
+      "feature": "Internship and Opportunity Tracker",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts opportunities; Opportunities tab`; B01 saved application, status applied, reviewed due task; B07 edit saved",
+      "issues": "Opportunity reminders use explicitly created task",
+      "fix": "Entity CRUD, URL validation, statuses and task reuse",
+      "test": "PASS UI + URL/dedup tests"
+    },
+    {
+      "id": 54,
+      "feature": "PDF Analyzer",
+      "status": "COMPLETE",
+      "evidence": "`components/documents.tsx; lib/pdf-extraction.ts; /api/files`; B04 actual PDF text extraction; B09 image-only scan OCR review",
+      "issues": "English recognition fixture verified; Tamil/Hindi model loading only",
+      "fix": "Local bundled OCR, bounded pages, cancellation, quota cleanup",
+      "test": "PASS browser + real PDF/OCR engine tests"
+    },
+    {
+      "id": 55,
+      "feature": "Document-Based Task Extraction",
+      "status": "COMPLETE",
+      "evidence": "`components/documents.tsx; lib/college.ts; app/nav-app.tsx`; B10 actual scan → OCR → notice review → saved exam task",
+      "issues": "Imported excerpt source retained; OCR dates require human review",
+      "fix": "Local OCR and editable notice/task review",
+      "test": "PASS actual browser chain, revision 45"
+    },
+    {
+      "id": 56,
+      "feature": "Searchable Memory",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts searchWorkspace; Memory tab`; B01 memory search, saved exchange retrieval and owner persistence",
+      "issues": "Substring search bounded to 50 results",
+      "fix": "Unified task/source/memory/conversation/project/opportunity search",
+      "test": "PASS browser + search/isolation tests"
+    },
+    {
+      "id": 57,
+      "feature": "Daily Information Digest",
+      "status": "COMPLETE",
+      "evidence": "`lib/studio.ts dailyDigest; app/nav-app.tsx College updates`; B08 current-day summary displayed actual task count and source ID",
+      "issues": "On demand; not a scheduled delivery service",
+      "fix": "Future/old notice handling, sorted source titles, no embedded text execution",
+      "test": "PASS UI + test-digest"
+    },
+    {
+      "id": 58,
+      "feature": "Android Companion App",
+      "status": "COMPLETE",
+      "evidence": "`companions/android; outputs/nav-android-0.8-candidate.apk`; D02 installed in place; 43 isolated real-device checks and actual plan alert/sound accepted",
+      "issues": "Private debug-signed install; no store listing; OS limits apply",
+      "fix": "Existing exact-alarm, encrypted cache, scoped relay retained",
+      "test": "PASS actual device Oct 23; unchanged native code this audit"
+    },
+    {
+      "id": 59,
+      "feature": "Windows Desktop Companion",
+      "status": "COMPLETE",
+      "evidence": "`companions/windows; NAV 0.5.4 portable`; D01 actual background scheduled popup/sound accepted Oct 22",
+      "issues": "Unsigned optional installer not execution-tested",
+      "fix": "Retained external-browser dashboard and encrypted read-only connection",
+      "test": "PASS portable device acceptance + 7 current suites"
+    },
+    {
+      "id": 60,
+      "feature": "Real-Time Synchronization",
+      "status": "PARTIAL",
+      "evidence": "`app/nav-app.tsx 20s refresh; native relay workers`; Prior user confirmed matching saved plan; APIs/CAS tested",
+      "issues": "Polling is not instantaneous; full Windows→Android completion→Windows roundtrip not freshly tested",
+      "fix": "Preserved focus refresh, conflict protection and minimized native caches",
+      "test": "API/policy PASS; complete requested roundtrip NOT VERIFIED"
+    },
+    {
+      "id": 61,
+      "feature": "Personal Dashboard",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx Overview; /api/workspace`; B01/B07 dashboard reflects saved tasks/time; real hosted account accepted earlier",
+      "issues": "Local sign-in is simulated and now visibly labelled",
+      "fix": "Kept real data and explicit empty/sync states",
+      "test": "PASS browser/API + hosted account evidence"
+    },
+    {
+      "id": 62,
+      "feature": "ChatGPT Sign-In",
+      "status": "NOT VERIFIED",
+      "evidence": "`app/chatgpt-auth.ts; build/sites-worker.ts`; D04 historical sign-in and current negative probes",
+      "issues": "Fresh post-release positive check blocked: user confirms timeout on auth.openai.com or chatgpt.com",
+      "fix": "Preserved secure hosted identity; no authentication bypass",
+      "test": "401 negative and 302 sign-in probes PASS; fresh authenticated roundtrip NOT VERIFIED"
+    },
+    {
+      "id": 63,
+      "feature": "Private User Workspace",
+      "status": "COMPLETE",
+      "evidence": "`app/chatgpt-auth.ts; /api/workspace; /api/files; lib/validation.ts`; Two-owner real SQLite/R2 API tests; production spoofed headers denied",
+      "issues": "No independent penetration-test certification",
+      "fix": "Atomic quotas, owner checks, bounded studio schema",
+      "test": "PASS security/isolation/API"
+    },
+    {
+      "id": 64,
+      "feature": "Permission Controls",
+      "status": "COMPLETE",
+      "evidence": "`Settings device sections; /api/devices/desktop/phone-reminders; native settings`; Scoped issuance/revocation and consent gates tested; user granted OS permissions",
+      "issues": "Full account purge is not implemented; cached alerts require phone disable too",
+      "fix": "Separate memory/AI consent and no automatic OS permission changes",
+      "test": "PASS scope/revocation tests + prior user permission workflow"
+    },
+    {
+      "id": 65,
+      "feature": "Read-Only External Integrations",
+      "status": "COMPLETE",
+      "evidence": "`lib/devices.ts; lib/relay.ts; desktop/mobile relays; Supabase policies`; Distinct upload/read scopes, expiry and owner restrictions tested",
+      "issues": "Notice upload appends approved text; no task/message write grant",
+      "fix": "New studio memories excluded from native minimized snapshot",
+      "test": "PASS relay/API/isolation suites"
+    },
+    {
+      "id": 66,
+      "feature": "Verified AI Outputs",
+      "status": "PARTIAL",
+      "evidence": "`lib/ai.ts output schema; lib/agents.ts reviewer; source review UI`; B03 second AI reviewer and B08 explicit source wording worked",
+      "issues": "Not independent factual verification; fluent mistakes remain possible",
+      "fix": "Bounded response, uncertainty prompts, schema, consent and human review",
+      "test": "Validation/review PASS; truth verification incomplete"
+    },
+    {
+      "id": 67,
+      "feature": "Home",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx home`; B01/B07 actual saved plan and navigation rendered",
+      "issues": "No fabricated demo records in production",
+      "fix": "Preserved overview and corrected analytics",
+      "test": "PASS desktop/mobile UI + API"
+    },
+    {
+      "id": 68,
+      "feature": "Today",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx today; lib/slots.ts`; B04 daily capacity-aware tasks; B06 persisted schedule",
+      "issues": "Native alerts are daily/deadline summaries, not per-slot alerts",
+      "fix": "Dedicated Today destination and schedule links",
+      "test": "PASS browser + planner tests"
+    },
+    {
+      "id": 69,
+      "feature": "College",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx college; components/documents.tsx`; B08 notice import, review, source and live AI chain; B04 PDF storage",
+      "issues": "Exact timetable/time features separately PARTIAL",
+      "fix": "Improved dates, review/deduplication, file quota",
+      "test": "PASS UI/live + college/file tests"
+    },
+    {
+      "id": 70,
+      "feature": "Roadmap",
+      "status": "COMPLETE",
+      "evidence": "`components/roadmap-import.tsx; app/nav-app.tsx roadmap`; B04 real uploaded roadmap drives future tasks",
+      "issues": "Topic extraction is editable and reviewed",
+      "fix": "Imported active roadmap and saved skill dependencies",
+      "test": "PASS browser + roadmap-active"
+    },
+    {
+      "id": 71,
+      "feature": "Focus",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx focus; components/break-timer.tsx`; B04 dedicated destination, elapsed save, pause and completed break",
+      "issues": "No background blocker",
+      "fix": "Dedicated Focus page and accurate separate break timer",
+      "test": "PASS actual browser timers"
+    },
+    {
+      "id": 72,
+      "feature": "Progress",
+      "status": "COMPLETE",
+      "evidence": "`app/nav-app.tsx Progress; components/study-tools.tsx Review`; B07 saved practice/focus and B05 weekly/monthly reports",
+      "issues": "No invented badges or unsupported achievement claims",
+      "fix": "Correct date filtering and expanded real-record analytics",
+      "test": "PASS browser + core/studio"
+    },
+    {
+      "id": 73,
+      "feature": "Ask NAV",
+      "status": "COMPLETE",
+      "evidence": "`components/conversation-assistant.tsx; app/nav-app.tsx assistant`; B03 live memory/coding coordination; B08 source/motivation/digest",
+      "issues": "Draft transient unless explicit Remember; speech limits above",
+      "fix": "Persistent consented conversations, roles and reviewed task actions",
+      "test": "PASS live UI + agent/security tests"
+    }
+  ],
+  "currentSource": "working tree; source receipt pending publication"
+}

@@ -8,11 +8,11 @@ export function providerConfig(env:Bindings){
  return {id,label:id==='gemini'?'Google Gemini':'OpenAI',key,model,configured:!!key&&/^[a-zA-Z0-9._-]{1,100}$/.test(model)};
 }
 export class ProviderError extends Error {constructor(message:string,public status=502){super(message)}}
-export async function providerAdvice(config:ReturnType<typeof providerConfig>,instructions:string,input:string){
+export async function providerAdvice(config:ReturnType<typeof providerConfig>,instructions:string,input:string,format:{type:string;name:string;strict:boolean;schema:Record<string,unknown>}=outputFormat){
  const gemini=config.id==='gemini';
  const response=await fetch(gemini?'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions':'https://api.openai.com/v1/responses',{
   method:'POST',redirect:'manual',headers:{Authorization:'Bearer '+config.key,'Content-Type':'application/json'},signal:AbortSignal.timeout(25000),
-  body:JSON.stringify(gemini?{model:config.model,max_tokens:4096,messages:[{role:'system',content:instructions},{role:'user',content:input}],response_format:{type:'json_schema',json_schema:{name:outputFormat.name,strict:true,schema:outputFormat.schema}}}:{model:config.model,store:false,max_output_tokens:2200,instructions,input,text:{format:outputFormat}})
+  body:JSON.stringify(gemini?{model:config.model,max_tokens:4096,messages:[{role:'system',content:instructions},{role:'user',content:input}],response_format:{type:'json_schema',json_schema:{name:format.name,strict:true,schema:format.schema}}}:{model:config.model,store:false,max_output_tokens:2200,instructions,input,text:{format}})
  });
  if(!response.ok)throw new ProviderError(response.status===429?`${config.label} quota or rate limit reached. Check your API account and retry later.`:response.status===401||response.status===403?'The server AI credential is invalid or lacks access. Update it privately.':'AI provider request failed. Please retry later.',response.status===429?429:502);
  const result=JSON.parse(new TextDecoder().decode(await limitedBytes(response,100000))) as {status?:string;choices?:{finish_reason?:string;message?:{content?:string}}[];output?:{content?:{type?:string;text?:string}[]}[]};

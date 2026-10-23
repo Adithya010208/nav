@@ -2,37 +2,37 @@
 
 ## Automated results
 
-Final run: 2026-10-23T14:48:25.533Z. **27/27 suites passed**, 0 failed. These are suites, not a fabricated individual assertion total. Providers are mocked in this runner; actual Gemini browser checks are separately recorded in NAV_COMPLETE_AUDIT_REPORT.md.
+Final run: 2026-10-23T15:40:32.251Z. **27/27 suites passed**, 0 failed. These are suites, not an individual assertion total. Providers are mocked in this runner; actual Gemini browser checks are separately recorded in NAV_COMPLETE_AUDIT_REPORT.md.
 
 | Suite | Result | Milliseconds |
 |---|---|---:|
-| scripts/test-agents-memory.mjs | PASS | 961 |
-| scripts/test-ai-context.mjs | PASS | 617 |
-| scripts/test-audit-edges.mjs | PASS | 617 |
-| scripts/test-core.mjs | PASS | 721 |
-| scripts/test-desktop-api.mjs | PASS | 685 |
-| scripts/test-desktop-relay.mjs | PASS | 468 |
-| scripts/test-device-sync.mjs | PASS | 919 |
-| scripts/test-digest.mjs | PASS | 578 |
-| scripts/test-file-quota.mjs | PASS | 392 |
-| scripts/test-isolation.mjs | PASS | 989 |
-| scripts/test-mobile-api.mjs | PASS | 656 |
-| scripts/test-mobile-relay.mjs | PASS | 429 |
-| scripts/test-notice-transfer.mjs | PASS | 666 |
-| scripts/test-ocr.mjs | PASS | 5420 |
-| scripts/test-phone-setup.mjs | PASS | 2298 |
-| scripts/test-relay-consume.mjs | PASS | 783 |
-| scripts/test-relay-edge.mjs | PASS | 442 |
-| scripts/test-roadmap-active.mjs | PASS | 714 |
-| scripts/test-studio.mjs | PASS | 713 |
-| scripts/test-voice.mjs | PASS | 747 |
-| companions/windows/test-connection.cjs | PASS | 349 |
-| companions/windows/test-login-diagnostics.cjs | PASS | 180 |
-| companions/windows/test-notification-policy.cjs | PASS | 160 |
-| companions/windows/test-poller.cjs | PASS | 189 |
-| companions/windows/test-registration.cjs | PASS | 167 |
-| companions/windows/test-verification.cjs | PASS | 179 |
-| companions/windows/test.cjs | PASS | 193 |
+| scripts/test-agents-memory.mjs | PASS | 818 |
+| scripts/test-ai-context.mjs | PASS | 406 |
+| scripts/test-audit-edges.mjs | PASS | 423 |
+| scripts/test-core.mjs | PASS | 445 |
+| scripts/test-desktop-api.mjs | PASS | 479 |
+| scripts/test-desktop-relay.mjs | PASS | 303 |
+| scripts/test-device-sync.mjs | PASS | 789 |
+| scripts/test-digest.mjs | PASS | 507 |
+| scripts/test-file-quota.mjs | PASS | 378 |
+| scripts/test-isolation.mjs | PASS | 953 |
+| scripts/test-mobile-api.mjs | PASS | 524 |
+| scripts/test-mobile-relay.mjs | PASS | 361 |
+| scripts/test-notice-transfer.mjs | PASS | 578 |
+| scripts/test-ocr.mjs | PASS | 5122 |
+| scripts/test-phone-setup.mjs | PASS | 1879 |
+| scripts/test-relay-consume.mjs | PASS | 570 |
+| scripts/test-relay-edge.mjs | PASS | 345 |
+| scripts/test-roadmap-active.mjs | PASS | 605 |
+| scripts/test-studio.mjs | PASS | 706 |
+| scripts/test-voice.mjs | PASS | 660 |
+| companions/windows/test-connection.cjs | PASS | 291 |
+| companions/windows/test-login-diagnostics.cjs | PASS | 225 |
+| companions/windows/test-notification-policy.cjs | PASS | 213 |
+| companions/windows/test-poller.cjs | PASS | 188 |
+| companions/windows/test-registration.cjs | PASS | 161 |
+| companions/windows/test-verification.cjs | PASS | 208 |
+| companions/windows/test.cjs | PASS | 182 |
 
 The runner excludes test-api.mjs (needs running local server) and test-voice-live.mjs (external provider); they are not silently counted in its 27-suite total. test-api.mjs was separately executed successfully against the actual local preview: simulated session, anonymous denial, origin rejection, persistence, stale revision 409, invalid schema rejection, private upload/download and synthetic file cleanup. Existing actual/synthetic live voice evidence is retained with its date; no fresh user microphone was captured by automation.
 
@@ -109,6 +109,13 @@ The verified application was privately published on 23 October: source 56e916f73
 A provider-key pattern scan initially flagged one encoded string in Tesseract's bundled WASM JavaScript. Its complete SHA256 matched the official installed vendor asset byte-for-byte; it is embedded WASM base64, not a credential. All 18 application client JS/JSON/HTML files outside the three vendor OCR core assets had zero provider-key pattern matches. This pattern scan is an additional check, not a general proof that all possible secrets are absent.
 
 ## Follow-up browser acceptance and reported hosted timeout
-The fresh continuous document workflow passed after the initial report: saved image-only PDF -> real local English OCR -> editable College excerpt -> reviewed suggestion -> saved exam task with confirmed 24 October date and source, local revision 45. Feature 55 is now COMPLETE. The daily capacity warning was corrected and browser-verified: 185 unfinished + 25 completed minutes against 150 capacity correctly shows 60 over; the prior UI understated it by omitting completed work. TypeScript was re-run after the display fix; the final source helper rebuild is required before publication.
+The fresh continuous document workflow passed after the initial report: saved image-only PDF -> real local English OCR -> editable College excerpt -> reviewed suggestion -> saved exam task with confirmed 24 October date and source, local revision 45. Feature 55 is now COMPLETE. The daily capacity warning was corrected and browser-verified: 185 unfinished + 25 completed minutes against 150 capacity correctly shows 60 over; the prior UI understated it by omitting completed work. TypeScript and the final source-helper rebuild passed after the display fix; exact source 59514eadbe462aa2ebd4221558590d155507f2a2 was successfully published privately.
 
-The user reported a gateway timeout during fresh hosted sign-in. Positive post-release authentication acceptance is therefore NOT VERIFIED (feature 62), even though earlier genuine ChatGPT sign-in had passed. Counts remain 53 COMPLETE, 13 PARTIAL, 1 BLOCKED, 6 NOT VERIFIED after swapping these two feature statuses. Actual unauthenticated probes: root 401 (~2.3 seconds), workspace API 401 (~2.4 seconds), sign-in 302 to auth.openai.com (~2.4 seconds). Recent NAV Worker log events were 200 for root and 404 for one crawler sign-in request; no matching 504/crash was observed. This does not prove the user's timeout resolved. Exact failing host is pending the user's answer; no auth protection was weakened or bypassed.
+The user reported a gateway timeout during fresh hosted sign-in. Positive post-release authentication acceptance is therefore NOT VERIFIED (feature 62), even though earlier genuine ChatGPT sign-in had passed. Counts remain 53 COMPLETE, 13 PARTIAL, 1 BLOCKED, 6 NOT VERIFIED after swapping these two feature statuses. Actual unauthenticated probes: root 401 (~2.3 seconds), workspace API 401 (~2.4 seconds), sign-in 302 to auth.openai.com (~2.4 seconds). Recent NAV Worker log events were 200 for root and 404 for one crawler sign-in request; no matching 504/crash was observed. This does not prove the user's timeout resolved. The user confirmed the timeout is on auth.openai.com or chatgpt.com; no auth protection was weakened or bypassed.
+
+## Final audit closure
+Assessment complete on 23 October 2026 (Asia/Calcutta). Re-ran all 27 suites and TypeScript successfully against the final application source. Matrix validator confirmed 73 unique ordered rows, seven nonempty columns, legal statuses, exact calculated counts/percentages, and all 26 concrete source-file references. The current hosted browser remains at Sign in required; no fresh positive authenticated acceptance is claimed. Calendar eligibility remains unavailable in the callable tool inventory. The full expanded release gate remains NOT READY. Machine-readable evidence: NAV_AUDIT_STATUS.json.
+
+## Sprint 1 implementation and verification
+The original 27-suite baseline plus test-sprint-foundations.mjs and test-priorities-api.mjs passed (29 suites). The new foundational test covers UTC/India conversion, DST gaps/folds, original wording/ambiguity hints, exact-deadline persistence/confirmation/schema rejection, before/on/overdue browser boundaries and exact ICS export. It also covers preparation capacity/busy/prerequisites/dedup, ICS all-day/recurrence/UID behavior and stale conflict alternatives. The API test uses real SQLite and a mocked provider: owner isolation, consent, shared daily quota, origin denial, invalid AI IDs, no implicit changes and explicit changed-priority database persistence.
+One real Gemini call was separately approved and passed through the browser. It ranked the two synthetic tasks by deadlines and retained their current priority values. User-review selection then persisted successfully at revision 46; no claim that this particular live answer proposed a numerical change. No additional live provider test was made. Actual browser exam/preparation, exact deadline save/reopen and imported-calendar conflict resolution passed at revisions 47–51. Native protocol remains v1; exact native alert support is still pending.

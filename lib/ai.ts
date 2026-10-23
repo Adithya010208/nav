@@ -1,3 +1,4 @@
+import {deadlineOverdue} from './deadlines';
 import {z} from 'zod';
 import {validDate,Workspace,dateInZone} from './model';
 import {memoryContext} from './studio';
@@ -14,7 +15,7 @@ export function aiContext(w:Workspace,mode:string,sourceId?:string,now=new Date(
  return {
   asOf:now.toISOString(),currentDate:today,
   profile:{startDate:w.profile.startDate,dailyMinutes:w.profile.dailyMinutes,examMode:w.profile.examMode,timezone:w.profile.timezone},
-  planning:{plannedMinutes,availableMinutes:Math.max(0,w.profile.dailyMinutes-plannedMinutes),overbookedMinutes:Math.max(0,plannedMinutes-w.profile.dailyMinutes),unfinishedToday:daily.filter(t=>t.status!=='done').length,overdue:active.filter(t=>t.status!=='done'&&t.due&&t.due<today).length,omittedTaskCount:Math.max(0,ordered.length-80)},
+  planning:{plannedMinutes,availableMinutes:Math.max(0,w.profile.dailyMinutes-plannedMinutes),overbookedMinutes:Math.max(0,plannedMinutes-w.profile.dailyMinutes),unfinishedToday:daily.filter(t=>t.status!=='done').length,overdue:active.filter(t=>t.status!=='done'&&deadlineOverdue(t,w.profile.timezone,now)).length,omittedTaskCount:Math.max(0,ordered.length-80)},
   evidence:{completedTasksLast7Days:active.filter(t=>t.status==='done'&&t.completedAt&&t.completedAt<=today&&t.completedAt>=dateInZone(w.profile.timezone,new Date(now.getTime()-6*86400000))).length,focusSecondsLast7Days:w.sessions.filter(s=>recent(s.endedAt)).reduce((sum,s)=>sum+s.seconds,0)},
   tasks:ordered.slice(0,80).map(({title,date,due,minutes,status,notes})=>({title,date,due,minutes,status,notes:notes.slice(0,600)})),
   milestones:w.topics.map(({title,week,done})=>({title,week,done})),recentPractice:w.problems.filter(p=>p.date<=today).slice(-20),recentFocus:w.sessions.filter(s=>Date.parse(s.endedAt)<=now.getTime()).slice().sort((a,b)=>b.endedAt.localeCompare(a.endedAt)).slice(0,20).map(({title,seconds,endedAt,note})=>({title,seconds,endedAt,note:note.slice(0,300)})),

@@ -1,9 +1,9 @@
 export type TaskStatus = 'planned' | 'partial' | 'done' | 'missed';
 export type Category = 'Roadmap' | 'College' | 'Personal' | 'Project' | 'Revision';
-export interface Task { id:string; title:string; category:Category; date:string; due:string; minutes:number; priority:number; status:TaskStatus; notes:string; sourceId?:string; topicId?:string; completedAt?:string; archived?:boolean; createdAt:string; }
+export interface Task { id:string; title:string; category:Category; date:string; due:string; dueAt?:string; dueZone?:string; advanceMinutes?:number; minutes:number; priority:number; status:TaskStatus; notes:string; sourceId?:string; topicId?:string; completedAt?:string; archived?:boolean; createdAt:string; }
 export interface Topic { id:string; title:string; phase:number; week:number; evidence:string; done:boolean; }
 export interface Source { id:string; text:string; group:string; receivedAt:string; importedAt:string; title:string; fingerprint:string; }
-export interface Suggestion { id:string; sourceId:string; title:string; due:string; confidence:'review'|'date-found'; reason:string; existingTaskId?:string; }
+export interface Suggestion { id:string; sourceId:string; title:string; due:string; confidence:'review'|'date-found'; reason:string; dueTime?:string; dueZone?:string; existingTaskId?:string; }
 export interface Session { id:string; taskId:string; title:string; startedAt:string; endedAt:string; seconds:number; note:string; }
 export interface Problem { id:string; title:string; pattern:string; result:'Independent'|'With hints'|'Revisit'; date:string; notes:string; review3:string; review14:string; }
 export interface Profile { name:string; timezone:string; startDate:string; dailyMinutes:number; studyTime:string; examMode:boolean; approvedGroup:string; onboarded:boolean; }

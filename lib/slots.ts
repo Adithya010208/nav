@@ -11,3 +11,12 @@ export function slotPlan(w:Workspace,date:string,start:string,end:string){
  return {slots,unplaced};
 }
 export function conflicts(w:Workspace){const s=studio(w),items=[...s.busy.map(x=>({...x,kind:'Busy event',label:x.title})),...s.slots.map(x=>({...x,kind:'Study slot',label:w.tasks.find(t=>t.id===x.taskId)?.title||'Missing task'}))];return items.flatMap((a,i)=>items.slice(i+1).filter(b=>overlaps(a,b)).map(b=>({a,b})));}
+export function replacementSlots(w:Workspace,date:string,start:string,end:string){
+ const collisions=conflicts(w),ids=new Set(collisions.flatMap(c=>[c.a,c.b]).filter(x=>x.kind==='Study slot'&&dateInZone(w.profile.timezone,new Date(x.start))===date).map(x=>x.id));
+ const copy=structuredClone(w);if(copy.studio)copy.studio.slots=copy.studio.slots.filter(s=>!ids.has(s.id));
+ return {...slotPlan(copy,date,start,end),replaced:[...ids],baseline:JSON.stringify({tasks:w.tasks,profile:w.profile,busy:studio(w).busy,slots:studio(w).slots})};
+}
+export function applyReplacement(w:Workspace,preview:ReturnType<typeof replacementSlots>){
+ if(preview.baseline!==JSON.stringify({tasks:w.tasks,profile:w.profile,busy:studio(w).busy,slots:studio(w).slots}))throw Error('The schedule changed. Preview alternatives again.');
+ if(!w.studio)throw Error('Study workspace missing.');w.studio.slots=w.studio.slots.filter(s=>!preview.replaced.includes(s.id));w.studio.slots.push(...preview.slots);
+}
