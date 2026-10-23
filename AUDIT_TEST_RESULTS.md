@@ -102,3 +102,8 @@ Native source did not change during this audit. Historical Android 43-test run a
 - Calendar eligibility capability absent; no unsupported workaround or fictional external test result.
 
 Lint was not requested and is not claimed. No store, new-device permission, calendar, or secret-provisioning test was silently inferred from a successful build.
+
+## Publication and final packaging checks
+The verified application was privately published on 23 October: source 56e916f73c7bad1d04c41687cdf40681df211fff, deployment appgdep_6adb79969c6081918f19385cbbd4aa7e, existing environment revision 2 and owner-private audience retained. The generic Sites build launcher initially failed because the Windows npm shim resolved a nonexistent node_modules/npm path. Retrying the supported source helper with NAV's existing scripts/run-framework.mjs wrapper rebuilt successfully and packaged the exact source. No application change was made to hide that infrastructure failure.
+
+A provider-key pattern scan initially flagged one encoded string in Tesseract's bundled WASM JavaScript. Its complete SHA256 matched the official installed vendor asset byte-for-byte; it is embedded WASM base64, not a credential. All 18 application client JS/JSON/HTML files outside the three vendor OCR core assets had zero provider-key pattern matches. This pattern scan is an additional check, not a general proof that all possible secrets are absent.
