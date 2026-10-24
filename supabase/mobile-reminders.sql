@@ -28,7 +28,7 @@ begin
  if p_op='publish' then
   if exists(select 1 from public.nav_mobile_links where user_id=p_owner and not revoked and expires_at>now()) then
    insert into public.nav_reminder_snapshots(user_id,revision,payload) values(p_owner,(p_value->>'revision')::bigint,p_value->'data')
-   on conflict(user_id) do update set revision=excluded.revision,payload=excluded.payload,updated_at=now() where public.nav_reminder_snapshots.revision<excluded.revision;
+   on conflict(user_id) do update set revision=excluded.revision,payload=excluded.payload,updated_at=now() where public.nav_reminder_snapshots.revision<excluded.revision OR (public.nav_reminder_snapshots.revision=excluded.revision AND (public.nav_reminder_snapshots.payload-'advanced')=(excluded.payload-'advanced') AND (excluded.payload#>>'{advanced,generatedAt}')::bigint > coalesce((public.nav_reminder_snapshots.payload#>>'{advanced,generatedAt}')::bigint,0));
   end if;
   return jsonb_build_object('saved',true);
  end if;

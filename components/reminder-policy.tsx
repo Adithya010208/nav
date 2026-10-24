@@ -1,12 +1,14 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import type {Workspace} from '@/lib/model';
 import {editStudio} from '@/lib/studio';
 import {defaultReminderPolicy,policyFromForm} from '@/lib/reminder-policy';
 export default function ReminderPolicySettings({workspace:w,busy,commit}:{workspace:Workspace;busy:boolean;commit:(change:(draft:Workspace)=>void)=>Promise<boolean>}){
- const p=w.studio?.reminderPolicy||defaultReminderPolicy(),[status,setStatus]=useState('');
- return <section className="panel pad"><h2>Daily browser check-ins</h2><p>These optional reminders use your saved plan without calling AI. Keep NAV open in any section. Windows and Android retain their existing study and deadline alerts; the check-in policy below currently applies to this web app.</p>
+ const p=w.studio?.reminderPolicy||defaultReminderPolicy(),[status,setStatus]=useState(''),[nativeReady,setNativeReady]=useState(false);
+ useEffect(()=>{const c=new AbortController();void fetch('/api/reminder-policy',{signal:c.signal,cache:'no-store'}).then(r=>{if(!r.ok)throw Error();return r.json() as Promise<{nativeReady:boolean}>;}).then(j=>setNativeReady(j.nativeReady===true)).catch(()=>{});return()=>c.abort();},[]);
+ return <section className="panel pad"><h2>Daily browser check-ins</h2><p>These optional reminders use your saved plan without calling AI. Keep NAV open in any section. Advanced native delivery needs Windows 0.6 / Android 0.9 and the separate opt-in below. Existing native alerts continue while rollout is inactive.</p>
  <form className="form-grid" key={JSON.stringify(p)} onSubmit={async e=>{e.preventDefault();try{const policy=policyFromForm(new FormData(e.currentTarget));if(await commit(d=>{editStudio(d).reminderPolicy=policy;}))setStatus('Check-in policy saved. Browser notification permission is enabled separately on each device.');else setStatus('Policy was not saved. Check the workspace sync error.');}catch(error){setStatus(error instanceof Error?error.message:'Check the reminder settings.');}}}>
+ <label className="check-label"><input name="nativeEnabled" type="checkbox" disabled={!nativeReady} defaultChecked={p.nativeEnabled}/>Share exact deadline alerts and task-based check-in windows with my existing reminder-only native connections</label>{!nativeReady&&<><input type="hidden" name="nativeEnabled" value={p.nativeEnabled?'on':''}/><p>Advanced native rollout is not enabled yet. This does not change existing companion alerts.</p></>}<p>When enabled, the existing private NAV reminder service receives only task titles and derived alarm times/summaries for up to 72 hours. Native check-ins exclude exam records, study-slot details, documents, messages and reflections. Connections remain read-only and revocable; no new connection is created.</p>
  <label className="check-label"><input name="enabled" type="checkbox" defaultChecked={p.enabled}/>Enable scheduled browser check-ins</label>
  <label className="check-label"><input name="morningEnabled" type="checkbox" defaultChecked={p.morningEnabled}/>Morning task and deadline briefing</label><label>Morning time<input name="morning" type="time" required defaultValue={p.morning}/></label>
  <label className="check-label"><input name="eveningEnabled" type="checkbox" defaultChecked={p.eveningEnabled}/>Evening progress review</label><label>Evening time<input name="evening" type="time" required defaultValue={p.evening}/></label>

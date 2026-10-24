@@ -1,7 +1,7 @@
 import {build} from 'esbuild';import assert from 'node:assert/strict';import {createRequire} from 'node:module';const require=createRequire(import.meta.url);
 globalThis.__desktopEnv={NAV_RELAY_SERVER_KEY:'fixture-server-only'};globalThis.__desktopUser={userId:'fixture-owner'};
 const plugin={name:'desktop-fixtures',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:'env',namespace:'fixture'}));b.onResolve({filter:/^@\/app\/chatgpt-auth$/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({contents:path==='env'?'export const env=globalThis.__desktopEnv;':'export async function getChatGPTUser(){return globalThis.__desktopUser;}'}));}};
-await build({entryPoints:['app/api/desktop/route.ts','lib/desktop-relay.ts','lib/model.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.sites-runtime/tests/desktop-api',outExtension:{'.js':'.cjs'},plugins:[plugin]});
+await build({entryPoints:['app/api/desktop/route.ts','app/api/reminder-policy/route.ts','lib/desktop-relay.ts','lib/model.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.sites-runtime/tests/desktop-api',outExtension:{'.js':'.cjs'},plugins:[plugin]});
 const api=require('../.sites-runtime/tests/desktop-api/app/api/desktop/route.cjs'),{publishDesktop}=require('../.sites-runtime/tests/desktop-api/lib/desktop-relay.cjs'),{emptyWorkspace}=require('../.sites-runtime/tests/desktop-api/lib/model.cjs');const w=emptyWorkspace();w.profile.name='private-identity';let links=[],calls=[];const expiry=new Date(Date.now()+86400000).toISOString();
 globalThis.fetch=async(url,o)=>{assert.equal(o.redirect,'manual','Workers redirect compatibility');assert.equal(o.headers.Authorization,'Bearer fixture-server-only');const b=JSON.parse(o.body),op=new URL(url).searchParams.get('op');calls.push({op,b});assert.equal(b.userId,'fixture-owner');if(op==='list')return Response.json(links);if(op==='create'){links=[{id:b.value.id,label:b.value.label,expiresAt:expiry,revoked:false}];assert(!('deviceToken' in b.value));assert.match(b.value.tokenHash,/^[a-f0-9]{64}$/);return Response.json({id:b.value.id,expiresAt:expiry});}if(op==='publish'){assert.equal(JSON.stringify(b).includes('private-identity'),false);return Response.json({saved:true});}if(op==='revoke')return Response.json({revoked:true});throw Error('Unexpected fixture operation');};
 assert.equal(await publishDesktop('fixture-owner',w,2),'not_connected');assert.deepEqual(calls.map(c=>c.op),['list']);
@@ -9,5 +9,13 @@ globalThis.__desktopEnv.DB={prepare(){return {bind(){return {first:async()=>({pa
 const send=(body,origin='https://nav.test')=>api.POST(new Request('https://nav.test/api/desktop',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)}));
 assert.equal((await send({label:'Laptop',confirm:false})).status,400);assert.equal((await send({label:'Laptop',confirm:true},'https://other.test')).status,403);
 const r=await send({label:'Laptop',confirm:true});assert.equal(r.status,201);const setup=await r.json();assert.match(setup.deviceToken,/^navw_[a-f0-9]{64}$/);assert.equal(setup.format,'nav-windows-setup');assert.equal(setup.deviceId,links[0].id);assert(calls.some(c=>c.op==='publish'));assert(!JSON.stringify(calls).includes(setup.deviceToken));
-globalThis.__desktopUser=null;assert.equal((await api.GET()).status,401);
+const readiness=require('../.sites-runtime/tests/desktop-api/app/api/reminder-policy/route.cjs');
+assert.equal((await (await readiness.GET()).json()).nativeReady,false);
+w.studio={reminderPolicy:{nativeEnabled:true,enabled:false}};
+await publishDesktop('fixture-owner',w,3);assert(!('advanced' in calls.filter(c=>c.op==='publish').at(-1).b.value.data));
+globalThis.__desktopEnv.NAV_ADVANCED_REMINDERS_READY='v2';assert.equal((await (await readiness.GET()).json()).nativeReady,true);
+await publishDesktop('fixture-owner',w,4);assert.equal(calls.filter(c=>c.op==='publish').at(-1).b.value.data.advanced.version,2);
+delete globalThis.__desktopEnv.NAV_ADVANCED_REMINDERS_READY;
+globalThis.__desktopUser=null;assert.equal((await readiness.GET()).status,401);
+assert.equal((await api.GET()).status,401);
 console.log('Desktop API checks passed: Workers-safe redirects, opt-in before snapshot transfer, setup creation, token hashing, context minimization, origin and anonymous denial.');

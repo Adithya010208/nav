@@ -17,6 +17,7 @@ public final class TaskReminderJob extends JobService {
             catch(Exception invalid){synchronized(TaskReminders.class){if(!work.stopped){TaskReminders.disable(this);TaskReminders.status(this,"Task reminder setup expired or is unavailable. Renew setup before enabling it again; your previous daily reminder is restored when possible.");}}return false;}
             HttpsURLConnection connection=(HttpsURLConnection)new java.net.URL(ReminderCredentials.RELAY+"?op=read").openConnection();work.connection=connection;
             connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(10000);connection.setReadTimeout(15000);connection.setRequestMethod("POST");connection.setDoOutput(true);connection.setFixedLengthStreamingMode(2);connection.setRequestProperty("Content-Type","application/json");connection.setRequestProperty("Authorization","Bearer "+credential.getString("deviceToken"));
+            connection.setRequestProperty("X-NAV-Reminder-Protocol","2");
             try(java.io.OutputStream output=connection.getOutputStream()){output.write(new byte[]{123,125});}
             int code=connection.getResponseCode();
             if(code==401||code==403){synchronized(TaskReminders.class){if(current(credential,work)){TaskReminders.disconnect(this);TaskReminders.status(this,"Task reminder access expired or was revoked. Create a new setup in website Settings.");}}return false;}

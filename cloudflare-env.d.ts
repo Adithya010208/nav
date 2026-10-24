@@ -8,5 +8,6 @@ declare namespace Cloudflare {
     GEMINI_MODEL?: string;
     AI_PROVIDER?: string;
     NAV_RELAY_SERVER_KEY?: string;
+    NAV_ADVANCED_REMINDERS_READY?: string;
   }
 }

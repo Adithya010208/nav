@@ -11,7 +11,8 @@ final class TaskReminders {
     static final String ACTION="app.nav.companion.PLAN_REMINDER";
     static SharedPreferences prefs(Context context){return context.getSharedPreferences("task-reminders",0);}
     static List<TaskReminderPlan.Task> tasks(JSONObject data) throws Exception {
-        if(data.length()!=2||!data.has("profile")||!data.has("tasks"))throw new IllegalArgumentException();
+        if(data.length()!=(data.has("advanced")?3:2)||!data.has("profile")||!data.has("tasks"))throw new IllegalArgumentException();
+        if(data.has("advanced"))NativeReminderBundle.validate(data.getJSONObject("advanced"));
         JSONObject profile=data.getJSONObject("profile");if(profile.length()!=3)throw new IllegalArgumentException();
         ZoneId.of(profile.getString("timezone"));LocalTime.parse(profile.getString("studyTime"));profile.getBoolean("onboarded");
         JSONArray values=data.getJSONArray("tasks");if(values.length()>3000)throw new IllegalArgumentException();List<TaskReminderPlan.Task> tasks=new ArrayList<>();
@@ -45,7 +46,7 @@ final class TaskReminders {
     static void cancelAlarm(Context context){PendingIntent pending=alarm(context,PendingIntent.FLAG_NO_CREATE);if(pending!=null){context.getSystemService(AlarmManager.class).cancel(pending);pending.cancel();}prefs(context).edit().remove("nextAt").apply();}
     static synchronized void disable(Context context){
         boolean restore=enabled(context)&&prefs(context).getBoolean("restoreDaily",false);prefs(context).edit().putBoolean("enabled",false).putBoolean("restoreDaily",false).apply();
-        context.getSystemService(JobScheduler.class).cancel(7341);context.getSystemService(JobScheduler.class).cancel(7342);cancelAlarm(context);context.getSystemService(NotificationManager.class).cancel(7344);context.getSystemService(NotificationManager.class).cancel(7345);
+        context.getSystemService(JobScheduler.class).cancel(7341);context.getSystemService(JobScheduler.class).cancel(7342);cancelAlarm(context);context.getSystemService(NotificationManager.class).cancelAll();
         ReminderCredentials.clear(context,ReminderCredentials.CACHE);
         if(restore){SharedPreferences daily=StudyReminders.prefs(context);StudyReminders.enable(context,daily.getInt("hour",18),daily.getInt("minute",30));}
     }
@@ -53,10 +54,11 @@ final class TaskReminders {
     static JSONObject cache(Context context) throws Exception {
         JSONObject credential=ReminderCredentials.credential(context),cache=ReminderCredentials.read(context,ReminderCredentials.CACHE);long now=System.currentTimeMillis();
         if(credential==null||cache==null||!credential.getString("deviceId").equals(cache.getString("scope"))||cache.getLong("syncedAt")>now+60000||cache.getLong("syncedAt")<now-72L*3600000)return null;
-        tasks(cache.getJSONObject("data"));return cache;
+        JSONObject data=cache.getJSONObject("data");tasks(data);if(data.has("advanced")){JSONObject advanced=data.getJSONObject("advanced");if(advanced.getLong("generatedAt")>now+60000||advanced.getLong("expiresAt")<=now)return null;}return cache;
     }
     static List<TaskReminderPlan.Event> events(Context context,JSONObject cache,long now) throws Exception {
         JSONObject data=cache.getJSONObject("data"),profile=data.getJSONObject("profile");if(!profile.getBoolean("onboarded"))return Collections.emptyList();
+        if(data.has("advanced"))return NativeReminderBundle.events(data.getJSONObject("advanced"),now,seen(context));
         return TaskReminderPlan.events(tasks(data),profile.getString("timezone"),profile.getString("studyTime"),now,seen(context));
     }
     static synchronized void schedule(Context context){
@@ -82,7 +84,7 @@ final class TaskReminders {
         StudyReminders.channel(context);if(!StudyReminders.canNotify(context))return false;
         PendingIntent open=PendingIntent.getActivity(context,7346,new Intent(context,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification notification=new Notification.Builder(context,StudyReminders.CHANNEL).setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(event.title).setContentText(event.body).setStyle(new Notification.BigTextStyle().bigText(event.body)).setContentIntent(open).setAutoCancel(true).setVisibility(Notification.VISIBILITY_PRIVATE).build();
-        try{context.getSystemService(NotificationManager.class).notify(event.key.endsWith(":study")?7344:7345,notification);return true;}catch(SecurityException denied){return false;}
+        try{context.getSystemService(NotificationManager.class).notify(event.key,7345,notification);return true;}catch(SecurityException denied){return false;}
     }
 }
 

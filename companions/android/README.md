@@ -1,5 +1,8 @@
 # NAV Android companion — source preview
 
+## Staged 0.9 (24 October; not yet device-accepted)
+Accepts the explicitly negotiated, bounded protocol-2 notification windows while continuing to parse legacy snapshots. Unknown versions, duplicate IDs, invalid windows, unexpected fields, expired/future bundles and horizons over 72 hours fail closed. Existing encrypted connection/cache and permission checks are preserved. Named NAV notifications avoid replacing simultaneous task alerts; disabling website reminders cancels only NAV's notifications and restores the prior daily reminder when applicable. Build, test-APK build, lint and signature verification pass. The 53 isolated device checks are prepared, not executed yet. Advanced production publication stays disabled pending device testing and explicit owner opt-in. See the latest root DELIVERY.md; historical version sections below do not establish 0.9 acceptance.
+
 ## Current status: 0.7
 0.7 is installed on the authorized Android 16 phone; 30 isolated device checks, 14 pure schedule checks, build and lint pass. Approved-group cloud upload was verified earlier. The real 23:42 daily scheduled reminder on 22 October fired after pressing Home; the user confirmed popup with sound, corroborated by receiver/submission timestamps. The normal 18:30 schedule is restored and verified with precise timing enabled. Fixture success alone is not user-visible delivery evidence.
 

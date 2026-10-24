@@ -1,6 +1,7 @@
 function parts(now,zone){const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).map(x=>[x.type,x.value]));return {date:p.year+'-'+p.month+'-'+p.day,time:p.hour+':'+p.minute};}
 function nextDay(date){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+1);return d.toISOString().slice(0,10);}
 function reminderEvents(workspace,now=new Date()){
+ if(workspace?.advanced!==undefined)return require('./advanced-reminders.cjs').advancedEvents(workspace.advanced,now);
  if(!workspace?.profile?.onboarded||!Array.isArray(workspace.tasks))return [];
  let today;try{today=parts(now,workspace.profile.timezone||'Asia/Kolkata')}catch{return []}
  const active=workspace.tasks.filter(t=>t&&typeof t.id==='string'&&typeof t.title==='string'&&t.status!=='done'&&!t.archived),events=[];

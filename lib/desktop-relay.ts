@@ -15,6 +15,6 @@ export async function publishDesktop(userId:string,data:Workspace,revision:numbe
   const links=await desktopCall('list',userId,{},2500);
   if(!Array.isArray(links))throw Error();
   if(!links.some(l=>l&&l.revoked===false&&Date.parse(l.expiresAt)>Date.now()))return 'not_connected';
-  await desktopCall('publish',userId,{revision,data:desktopSnapshot(data)},2500);return 'current';
+  await desktopCall('publish',userId,{revision,data:desktopSnapshot(data,env.NAV_ADVANCED_REMINDERS_READY==='v2')},2500);return 'current';
  }catch{return 'retry';}
 }
