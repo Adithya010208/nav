@@ -1,10 +1,12 @@
 import {examSchema} from './exams';
+import {reminderPolicySchema} from './reminder-policy';
 import {z} from 'zod';
 import {addDays,dateInZone,newTask,validDate,type Workspace,type Task} from './model';
 const id=z.string().min(1).max(100),day=z.string().refine(validDate,'Invalid date'),optionalDay=z.union([day,z.literal('')]);
 const title=z.string().trim().min(1).max(240),note=z.string().max(3000);
 function safeURL(value:string){try{if(!value)return true;const u=new URL(value);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password;}catch{return false;}}
 export const studioSchema=z.object({
+ reminderPolicy:reminderPolicySchema.optional(),
  exams:z.array(examSchema).max(100).default([]),
  memories:z.array(z.object({id,kind:z.enum(['goal','preference','project','fact']),text:z.string().trim().min(1).max(2000),date:day})).max(200).default([]),
  conversations:z.array(z.object({id,question:z.string().max(2000),answer:z.string().max(12000),mode:z.string().max(30),createdAt:z.string().datetime()})).max(50).default([]),

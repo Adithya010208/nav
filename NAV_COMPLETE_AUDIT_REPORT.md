@@ -161,7 +161,7 @@ This is implementation work in progress. The original 53-feature baseline remain
 
 **S1 browser evidence:** approved live priority review of only two synthetic tasks, explicit selected save at local revision 46; structured exam save at 47 and three capacity-aware preparation tasks/slots at 48; 26 October 17:00 Asia/Kolkata deadline persisted/reopened at 49; imported calendar class at 50 caused two overlaps, reviewed alternatives at 51 preserved class and removed overlaps. Current native exact alerts are explicitly labelled pending.
 
-Private publication of this checkpoint is pending until the Sites result confirms it; the deployed-source receipt will be saved in outputs/NAV_SPRINT_RELEASE.json. The seven full workflow statuses above are not automatically promoted by these component checks.
+Sprint 1 checkpoint private publication succeeded: source 734f58fc62f0d5468d7d0a3aa5c90420fc04f7ac, deployment appgdep_6adb8e76d49c81919256e36cd1405612. Receipt saved in outputs/NAV_SPRINT_RELEASE.json. The seven full workflow statuses above are not automatically promoted by these component checks.
 
 | Feature ID | Previous Status | New Status | Implementation Evidence | Test Evidence |
 |---|---|---|---|---|
@@ -177,11 +177,15 @@ Private publication of this checkpoint is pending until the Sites result confirm
 | 34 | NOT VERIFIED | NOT VERIFIED | `components/voice.tsx ReadAloud; Voice actions briefing`; Text briefing and installed-voice control render | Text/unit PASS; audible output NOT VERIFIED |
 | 35 | NOT VERIFIED | NOT VERIFIED | `components/study-tools.tsx Voice actions; lib/studio.ts`; B02 exact-title completion preview and explicit confirm saved | Typed/UI/unit PASS; microphone workflow NOT VERIFIED |
 | 37 | NOT VERIFIED | NOT VERIFIED | `lib/desktop-snapshot.ts; Android/Windows deadline policies`; Due/overdue logic and separate scopes tested; receiver diagnostics exist | Policy tests PASS; actual deadline-specific sound NOT VERIFIED |
-| 38 | PARTIAL | PARTIAL | `app/nav-app.tsx briefing; lib/studio.ts dailyDigest`; B08 on-demand personalized daily summary passed | On-demand PASS; scheduled workflow incomplete |
-| 39 | PARTIAL | PARTIAL | `components/study-tools.tsx Review; lib/studio.ts checkins`; B05 progress/energy/note saved and unfinished tasks rescheduled | Manual workflow PASS; scheduled start missing |
-| 40 | PARTIAL | PARTIAL | `app/nav-app.tsx status/replan; native deadline policies`; Unfinished tasks identified in B05; overdue deadlines tested | Manual detection PASS; dedicated alert incomplete |
+| 38 | PARTIAL | PARTIAL | lib/proactive-reminders.ts; components/reminder-policy.tsx; components/reminders.tsx; browser opt-in morning task/deadline/session/exam briefing | PASS local save/reload revision 54 and policy boundary tests; new audible/background acceptance pending |
+| 39 | PARTIAL | PARTIAL | lib/proactive-reminders.ts; components/reminder-policy.tsx; components/study-tools.tsx Review; optional evening prompt suppressed by saved check-in | PASS schema/policy tests and prior reviewed check-in UI; new sound/native delivery pending |
+| 40 | PARTIAL | PARTIAL | lib/proactive-reminders.ts; components/reminder-policy.tsx; components/reminders.tsx; opt-in older unfinished/expired-slot review with grace, quiet hours and local snooze | PASS eligibility/filtering/grace/no-write tests; audible/background acceptance pending |
 | 41 | BLOCKED | BLOCKED | `components/reminders.tsx ICS; lib/slots.ts`; ICS snapshot export and manual free-time planning exist | Manual slots PASS; real calendar sync BLOCKED |
 | 44 | PARTIAL | PARTIAL | `app/nav-app.tsx Focus; components/break-timer.tsx`; Focused session dialog and separate break control work | Timer PASS; broader distraction tools incomplete |
 | 60 | PARTIAL | PARTIAL | `app/nav-app.tsx 20s refresh; native relay workers`; Prior user confirmed matching saved plan; APIs/CAS tested | API/policy PASS; complete requested roundtrip NOT VERIFIED |
 | 62 | NOT VERIFIED | NOT VERIFIED | `app/chatgpt-auth.ts; build/sites-worker.ts`; D04 historical sign-in and current negative probes | 401 negative and 302 sign-in probes PASS; fresh authenticated roundtrip NOT VERIFIED |
 | 66 | PARTIAL | PARTIAL | `lib/ai.ts output schema; lib/agents.ts reviewer; source review UI`; B03 second AI reviewer and B08 explicit source wording worked | Validation/review PASS; truth verification incomplete |
+
+## Sprint 2 browser-policy checkpoint (24 October 2026)
+
+Optional owner-saved morning/evening/missed-work policy, quiet hours, catch-up bounds, missed-slot grace and local eligible-alert snooze/dismiss are implemented. The notification controller now stays mounted across all NAV sections. Actual isolated browser save/reload passed at revision 54, then disabled at revision 57; actual HTTP API checks passed. All 30 automated suites and TypeScript passed. Native payload/permissions are unchanged. New audible browser delivery and compatible background-native delivery remain unverified, so features 38–40 remain PARTIAL and seven-workflow statuses are not promoted. Counts remain 55 COMPLETE / 11 PARTIAL / 1 BLOCKED / 6 NOT VERIFIED (75.34% verified). Final build/publication pending.
