@@ -5,25 +5,69 @@ import {emptyWorkspace,newTask,uid} from './lib/model';
 import {exactDeadline,wallInstants,deadlineHint,deadlineOverdue,deadlineFields} from './lib/deadlines';
 import {workspaceSchema} from './lib/validation';
 import {editStudio} from './lib/studio';
-import {examSchema,saveExam,prepareExams,examPlanStamp} from './lib/exams';
+import {examSchema,saveExam,prepareExams,examPlanStamp,examCandidates} from './lib/exams';
 import {importCalendar,mergeCalendar} from './lib/calendar-import';
 import {reviewPriorities,applyPriorities,priorityContext} from './lib/priorities';
 import {replacementSlots,applyReplacement,conflicts,overlaps} from './lib/slots';
 import {reminderEvents} from './lib/reminders';
 import {calendarFile} from './lib/calendar';
 import {desktopSnapshot} from './lib/desktop-snapshot';
+import {suggestFromMessage} from './lib/college';
 assert.equal(exactDeadline('2026-10-26','17:00','Asia/Kolkata'),'2026-10-26T11:30:00.000Z');
 assert.deepEqual(wallInstants('2026-11-01','01:30','America/New_York'),['2026-11-01T05:30:00.000Z','2026-11-01T06:30:00.000Z']);
 assert.throws(()=>exactDeadline('2026-11-01','01:30','America/New_York'));assert.equal(exactDeadline('2026-11-01','01:30','America/New_York','later'),'2026-11-01T06:30:00.000Z');assert.throws(()=>exactDeadline('2026-03-08','02:30','America/New_York'));assert.throws(()=>exactDeadline('2026-02-30','17:00','UTC'));
 for(const [text,date,time] of [['Tomorrow at 5 PM','2026-10-24','17:00'],['26 October at 2:30 PM','2026-10-26','14:30'],['27/10/2026, 10:00 AM','2026-10-27','10:00']]){const h=deadlineHint(text,'2026-10-23','Asia/Kolkata');assert.equal(h.due,date);assert.equal(h.time,time);}assert(deadlineHint('Friday before 11:59 PM','2026-10-23','Asia/Kolkata').uncertain);assert(deadlineHint('Submit 10/11/2026 at 5 PM IST','2026-10-23','Asia/Kolkata').uncertain);
 const f=new FormData();f.set('due','2026-10-26');f.set('dueTime','17:00');assert.throws(()=>deadlineFields(f,'Asia/Kolkata'));f.set('confirmDeadline','on');assert.equal(deadlineFields(f,'Asia/Kolkata').dueAt,'2026-10-26T11:30:00.000Z');f.set('dueTime','');assert.equal(deadlineFields(f,'Asia/Kolkata').dueAt,undefined);
 const w=emptyWorkspace();w.profile.onboarded=true;const task=newTask({id:'a',title:'Assignment',date:'2026-10-23',due:'2026-10-26',dueAt:'2026-10-26T11:30:00.000Z',dueZone:'Asia/Kolkata',advanceMinutes:60});w.tasks.push(task);assert(workspaceSchema.safeParse(w).success);assert(!deadlineOverdue(task,w.profile.timezone,new Date('2026-10-26T11:29:59Z')));assert(deadlineOverdue(task,w.profile.timezone,new Date('2026-10-26T11:30:01Z')));const invalid=structuredClone(w);invalid.tasks[0].dueZone='Invalid/Zone';assert.equal(workspaceSchema.safeParse(invalid).success,false);invalid.tasks[0].dueZone='UTC';invalid.tasks[0].due='2026-10-25';assert.equal(workspaceSchema.safeParse(invalid).success,false);
-assert(reminderEvents(w,new Date('2026-10-26T10:45:00Z')).some(e=>e.title.includes('approaching')));assert(reminderEvents(w,new Date('2026-10-26T11:30:00Z')).some(e=>e.title.includes('Deadline now')));assert(reminderEvents(w,new Date('2026-10-26T11:41:00Z')).some(e=>e.title.includes('overdue')));assert(calendarFile(w.tasks,w.profile).includes('DTSTART:20261026T113000Z'));assert(calendarFile(w.tasks,w.profile).includes('TRIGGER:-PT60M'));assert(!('dueAt' in desktopSnapshot(w).tasks[0]),'Existing strict native payload must remain compatible until native protocol upgrade');
+assert(reminderEvents(w,new Date('2026-10-26T10:45:00Z')).some(e=>e.title.includes('approaching')));assert(reminderEvents(w,new Date('2026-10-26T11:30:00Z')).some(e=>e.title.includes('Deadline now')));assert(reminderEvents(w,new Date('2026-10-26T11:41:00Z')).some(e=>e.title.includes('overdue')));const calendarTask={...task,due:'2030-10-26',dueAt:'2030-10-26T11:30:00.000Z'};assert(calendarFile([calendarTask],w.profile).includes('DTSTART:20301026T113000Z'));assert(calendarFile([calendarTask],w.profile).includes('TRIGGER:-PT60M'));assert(!('dueAt' in desktopSnapshot(w).tasks[0]),'Existing strict native payload must remain compatible until native protocol upgrade');
 const context=priorityContext(w);assert.equal(context.tasks[0].id,'a');const proposal=reviewPriorities(w,{summary:'Deadline first',proposals:[{taskId:'a',priority:1,rank:1,reason:'Due soon'}]});assert.equal(task.priority,2);assert.equal(applyPriorities(w,proposal,['a']),1);assert.equal(task.priority,1);assert.throws(()=>applyPriorities(w,proposal,['a']));assert.throws(()=>reviewPriorities(w,{summary:'Bad',proposals:[{taskId:'unknown',priority:1,rank:1,reason:'Invented'}]}));
 const ics='BEGIN:VCALENDAR\\r\\nVERSION:2.0\\r\\nBEGIN:VEVENT\\r\\nUID:class-1\\r\\nDTSTART;TZID=Asia/Kolkata:20261026T183000\\r\\nDTEND;TZID=Asia/Kolkata:20261026T193000\\r\\nSUMMARY:Maths\\\\; class\\r\\nEND:VEVENT\\r\\nBEGIN:VEVENT\\r\\nUID:all-day\\r\\nDTSTART;VALUE=DATE:20261027\\r\\nSUMMARY:Holiday\\r\\nEND:VEVENT\\r\\nBEGIN:VEVENT\\r\\nUID:repeat\\r\\nDTSTART:20261026T120000Z\\r\\nDTEND:20261026T130000Z\\r\\nRRULE:FREQ=DAILY\\r\\nEND:VEVENT\\r\\nEND:VCALENDAR';
 const imported=importCalendar(ics,'Asia/Kolkata');assert.equal(imported.events.length,2);assert.equal(imported.warnings.length,1);assert.equal(imported.events[0].start,'2026-10-26T13:00:00.000Z');assert.equal(imported.events[1].start,'2026-10-26T18:30:00.000Z');assert.equal(imported.events[1].end,'2026-10-27T18:30:00.000Z');editStudio(w);assert.equal(mergeCalendar(w,imported.events),2);assert.equal(mergeCalendar(w,imported.events),0);assert(workspaceSchema.safeParse(w).success);
 const exam=examSchema.parse({id:'exam1',subject:'Maths',startsAt:'2026-10-27T03:30:00.000Z',endsAt:'2026-10-27T05:30:00.000Z',timezone:'Asia/Kolkata',kind:'Internal',location:'Room 2',difficulty:4,confidence:2,topicIds:[]});saveExam(w,exam);assert.throws(()=>saveExam(w,{...exam,id:'duplicate'}));const plan=prepareExams(w,new Date('2026-10-23T08:00:00Z'));assert.equal(plan.tasks.length,3);assert(plan.slots.every(s=>Date.parse(s.end)<=Date.parse(exam.startsAt)));assert(plan.slots.every(s=>w.studio.busy.every(b=>!overlaps(s,b))));const stamp=plan.stamp;w.tasks.push(...plan.tasks);w.studio.slots.push(...plan.slots);assert.notEqual(examPlanStamp(w),stamp);assert(workspaceSchema.safeParse(w).success);assert.equal(prepareExams(w,new Date('2026-10-23T08:00:00Z')).tasks.length,0);
+const timetable={id:'tt',text:'Internal exam timetable\\nMathematics Exam — 27/10/2026 09:00 AM - 11:00 AM Room 2\\nPhysics Test — 2026-10-28 14:00-16:00 Hall A\\nPhysics Test — 2026-10-28 14:00-16:00 Hall A',group:'Fixture',receivedAt:'2026-10-23T08:00:00Z',importedAt:'2026-10-23T08:00:00Z',title:'Timetable',fingerprint:'tt'};const candidates=examCandidates(timetable,'Asia/Kolkata');assert.equal(candidates.length,2);assert.equal(candidates[0].date,'2026-10-27');assert.equal(candidates[0].start,'09:00');assert.equal(candidates[0].end,'11:00');assert.equal(candidates[1].date,'2026-10-28');assert.equal(candidates[1].start,'14:00');assert.equal(candidates[1].end,'16:00');
+
+// Multi-subject timetable candidate extraction
+const multiTimetable={id:'multi_tt',text:'Midterm Examination Schedule\\n1. Data Structures & Algorithms: 2026-11-02 from 10:00 AM to 12:00 PM (Hall 3)\\n2. Computer Networks: 2026-11-04 14:00 - 16:00 Room 101\\n3. Operating Systems: postponed from 2026-11-05 to 2026-11-08 09:30 AM to 12:30 PM Exam Hall B',group:'Fixture',receivedAt:'2026-10-23T08:00:00Z',importedAt:'2026-10-23T08:00:00Z',title:'Timetable',fingerprint:'multi_tt'};
+const multiCandidates=examCandidates(multiTimetable,'Asia/Kolkata');
+assert.equal(multiCandidates.length,3);
+assert.equal(multiCandidates[0].subject,'Data Structures & Algorithms');
+assert.equal(multiCandidates[0].date,'2026-11-02');
+assert.equal(multiCandidates[0].start,'10:00');
+assert.equal(multiCandidates[0].end,'12:00');
+assert.equal(multiCandidates[0].location,'Hall 3');
+assert.equal(multiCandidates[1].subject,'Computer Networks');
+assert.equal(multiCandidates[1].date,'2026-11-04');
+assert.equal(multiCandidates[1].start,'14:00');
+assert.equal(multiCandidates[1].end,'16:00');
+assert.equal(multiCandidates[1].location,'Room 101');
+assert.equal(multiCandidates[2].subject,'Operating Systems');
+assert.equal(multiCandidates[2].date,'2026-11-08');
+assert.equal(multiCandidates[2].start,'09:30');
+assert.equal(multiCandidates[2].end,'12:30');
+assert.equal(multiCandidates[2].location,'Exam Hall B');
+
+// Missed exam prep session detection and rescheduling
+const prepTask=w.tasks.find(t=>t.notes==='exam:exam1:0');
+assert(prepTask);
+prepTask.date='2026-10-22';
+prepTask.status='missed';
+const reschedulePlan=prepareExams(w,new Date('2026-10-23T08:00:00Z'));
+assert.equal(reschedulePlan.rescheduled.length,1);
+assert.equal(reschedulePlan.rescheduled[0].taskId,prepTask.id);
+assert.equal(prepTask.date,'2026-10-23');
+assert.equal(reschedulePlan.slots.length,1);
+
+// Announcement change detection (college.ts)
+const dbmsTask=newTask({id:'dbms1',title:'DBMS mini-project submission',category:'College',date:'2026-10-23',due:'2026-10-25'});
+w.tasks.push(dbmsTask);
+const notice={id:'notice_update',text:'Announcement: The DBMS mini-project submission has been postponed from 25/10/2026 to 30/10/2026 5:00 PM.',group:'Fixture',receivedAt:'2026-10-23T08:00:00Z',importedAt:'2026-10-23T08:00:00Z',title:'DBMS notice',fingerprint:'dbms_notice'};
+const suggestions=suggestFromMessage(notice,w.tasks,'2026-10-23','Asia/Kolkata');
+assert.equal(suggestions.length,1);
+assert.equal(suggestions[0].due,'');
+assert.equal(suggestions[0].existingTaskId,'dbms1');
+assert(suggestions[0].reason.includes('supersedes 2026-10-25'));
+
 const r=emptyWorkspace();r.profile.timezone='UTC';r.tasks.push(newTask({id:'r',title:'Study',date:'2026-10-23',minutes:30}));const rs=editStudio(r);rs.busy.push({id:'class',title:'Class',start:'2026-10-23T18:30:00.000Z',end:'2026-10-23T19:00:00.000Z'});rs.slots.push({id:'badslot',taskId:'r',start:'2026-10-23T18:30:00.000Z',end:'2026-10-23T19:00:00.000Z'});assert.equal(conflicts(r).length,1);const alternative=replacementSlots(r,'2026-10-23','2026-10-23T18:00:00Z','2026-10-23T20:00:00Z');applyReplacement(r,alternative);assert.equal(conflicts(r).length,0);assert.equal(rs.busy[0].start,'2026-10-23T18:30:00.000Z');assert.throws(()=>applyReplacement(r,alternative));
-console.log('PASS: exact deadlines, IST/DST gap/fold, confirmation/schema guards, reminder boundaries, priority preview/apply/staleness, bounded ICS/all-day/recurrence/dedup, exam preparation/capacity/source persistence, conflict alternatives and legacy native protocol.');`;
-await build({stdin:{contents:source,resolveDir:process.cwd(),sourcefile:'sprint-foundations.ts'},bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/tests/sprint-foundations.mjs'});
+console.log('PASS: exact deadlines, IST/DST gap/fold, confirmation/schema guards, reminder boundaries, priority preview/apply/staleness, bounded ICS/all-day/recurrence/dedup, exam preparation/capacity/source persistence, multi-subject & postponed timetables, missed exam prep rescheduling, announcement change detection, conflict alternatives and legacy native protocol.');`;
+await build({stdin:{contents:source,resolveDir:process.cwd(),sourcefile:'sprint-foundations.ts',loader:'ts'},bundle:true,platform:'node',format:'esm',outfile:'.sites-runtime/tests/sprint-foundations.mjs'});
 const result=spawnSync(process.execPath,['.sites-runtime/tests/sprint-foundations.mjs'],{stdio:'inherit'});process.exitCode=result.status??1;

@@ -5,9 +5,19 @@ param(
 )
 $ErrorActionPreference='Stop'
 function Invoke-AdbChecked([string[]]$Arguments) {
-    $result = & $Adb @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "ADB operation failed: $($result -join ' ')" }
-    return ($result -join "`n")
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $Adb
+    $pinfo.Arguments = ($Arguments | ForEach-Object { if ($_ -match '\s') { "`"$_`"" } else { $_ } }) -join ' '
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.RedirectStandardError = $true
+    $pinfo.UseShellExecute = $false
+    $pinfo.CreateNoWindow = $true
+    $p = [System.Diagnostics.Process]::Start($pinfo)
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    $p.WaitForExit()
+    if ($p.ExitCode -ne 0) { throw "ADB operation failed (exit code $($p.ExitCode)): $stdout $stderr" }
+    return ($stdout + "`n" + $stderr)
 }
 $devices=Invoke-AdbChecked @('devices')
 $ready=@($devices -split "`n" | Where-Object { $_ -match '^\S+\s+device\s*$' } | ForEach-Object { ($_ -split '\s+')[0] })

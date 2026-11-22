@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import RecordedQuestion from './recorded-question';
+import {AcousticWakeDetector} from '@/lib/wake-detector';
 
 type RecognitionResult={isFinal:boolean;0:{transcript:string}};
 type Recognition={lang:string;continuous:boolean;interimResults:boolean;maxAlternatives:number;onresult:((event:{results:ArrayLike<RecognitionResult>;resultIndex:number})=>void)|null;onerror:((event:{error:string})=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void;abort:()=>void};
@@ -53,3 +54,50 @@ export function ReadAloud({text}:{text:string}) {
  }
  return <div className="voice-controls"><button type="button" className="secondary" disabled={!text||!available} onClick={()=>{if(speaking){window.speechSynthesis.cancel();utterance.current=null;setSpeaking(false);setStatus('Readout stopped.')}else read();}}>{speaking?'Stop reading':'Read aloud'}</button><small className="muted"> {available?'Uses an installed local voice.':'A local device voice is required for readout.'}</small>{status&&<p role="status">{status}</p>}</div>;
 }
+
+export function AcousticWakeListener({wakePhrase='Hey NAV',onWake,disabled=false}:{wakePhrase?:string;onWake:(command:string)=>void;disabled?:boolean}){
+ const [active,setActive]=useState(false),[status,setStatus]=useState(''),[available,setAvailable]=useState(false);
+ const detector=useRef<AcousticWakeDetector|null>(null),callback=useRef(onWake);
+ callback.current=onWake;
+ useEffect(()=>{
+  const w=window as SpeechWindow;setAvailable(!!(w.SpeechRecognition||w.webkitSpeechRecognition));
+  return()=>{detector.current?.stop();detector.current=null;};
+ },[]);
+ useEffect(()=>{
+  if(detector.current)detector.current.setWakePhrase(wakePhrase);
+ },[wakePhrase]);
+ useEffect(()=>{
+  if(disabled&&active){detector.current?.stop();setActive(false);setStatus('Wake listening paused.');}
+ },[disabled]);
+ function toggle(){
+  if(active){detector.current?.stop();detector.current=null;setActive(false);setStatus('Acoustic wake listening stopped.');return;}
+  const w=window as SpeechWindow,Constructor=w.SpeechRecognition||w.webkitSpeechRecognition;
+  if(!Constructor){setStatus('Speech recognition is unavailable in this browser.');return;}
+  const inst=new Constructor();
+  const d=new AcousticWakeDetector({
+   wakePhrase,
+   soundAlert:true,
+   onWake:(cmd)=>{
+    setStatus(`✓ Wake phrase "${wakePhrase}" recognized! Processing command...`);
+    if(cmd.trim())callback.current(cmd.trim());
+   },
+   onStateChange:(state,msg)=>{if(msg)setStatus(msg);}
+  });
+  detector.current=d;
+  if(d.start(inst)){setActive(true);setStatus(`🎧 Listening in foreground for "${wakePhrase}"... Say "${wakePhrase}" to activate.`);}
+  else{detector.current=null;setActive(false);}
+ }
+ return <div className="voice-wake-panel" style={{marginTop:'0.75rem',padding:'0.75rem',border:'1px solid var(--border,#e2e8f0)',borderRadius:'8px',background:'var(--card,#f8fafc)'}}>
+  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'0.5rem',flexWrap:'wrap'}}>
+   <div>
+    <strong>Acoustic Wake Detector</strong>
+    <p style={{margin:'0.25rem 0',fontSize:'0.85rem',color:'var(--muted,#64748b)'}}>Foreground hands-free wake listening. Say “{wakePhrase}” to trigger actions without clicking.</p>
+   </div>
+   <button type="button" className={active?'primary':'secondary'} disabled={!available||disabled} onClick={toggle}>
+    {active?'Stop wake listening':'Enable wake listening'}
+   </button>
+  </div>
+  {status&&<p role="status" style={{fontSize:'0.85rem',marginTop:'0.5rem',fontWeight:active?500:400,color:active?'#0284c7':'inherit'}}>{status}</p>}
+ </div>;
+}
+
